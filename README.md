@@ -4,263 +4,275 @@
 
 # SFTP Manager
 
-**macOS 네이티브 SFTP 파일 전송기**
-왼쪽은 이 Mac, 오른쪽은 서버. 두 창 사이로 파일을 옮깁니다.
+**A native SFTP file transfer app for macOS**
+This Mac on the left, your server on the right. Move files between the two.
 
 ![macOS](https://img.shields.io/badge/macOS-15%2B-000000?logo=apple&logoColor=white)
 ![Swift](https://img.shields.io/badge/Swift-6.x-F05138?logo=swift&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 ![Self-test](https://img.shields.io/badge/self--test-262%20passing-brightgreen)
-![UI](https://img.shields.io/badge/UI-한국어%20·%20English-8A2BE2)
+![UI](https://img.shields.io/badge/UI-English%20·%20한국어-8A2BE2)
+
+**English** · [한국어](README.ko.md)
 
 </div>
 
 ---
 
-## 목차
+## Contents
 
 | | |
 |---|---|
-| [✨ 기능](#features) | [⌨️ 단축키](#shortcuts) |
-| [📦 의존성](#dependencies) | [🧰 요구 사항과 빌드](#build) |
-| [✅ 검증](#verification) | [⚡ 전송 성능](#performance) |
-| [🛡️ 보안 설계](#security-design) | [⚠️ 알려진 제약](#limitations) |
-| [🗺️ 구조](#layout) | [📄 라이선스](#license) |
+| [✨ Features](#features) | [⌨️ Shortcuts](#shortcuts) |
+| [📦 Dependencies](#dependencies) | [🧰 Requirements and building](#build) |
+| [✅ Verification](#verification) | [⚡ Transfer performance](#performance) |
+| [🛡️ Security design](#security-design) | [⚠️ Known limitations](#limitations) |
+| [🗺️ Layout](#layout) | [📄 License](#license) |
 
 ---
 
 <a id="features"></a>
 
-## ✨ 기능
+## ✨ Features
 
-### 🗂️ 두 창 브라우저
+### 🗂️ Two-pane browser
 
-- **2분할** — 왼쪽 로컬 / 오른쪽 원격. 창마다 뒤로·앞으로·상위·홈 이동, 경로 직접 입력, 이름 필터
-- **열** — 이름 · 크기 · 수정일 · 소유자 · 권한
-  <sup>원격 소유자 이름은 서버가 함께 보내는 `ls -l` 줄에서 읽습니다(SFTP 자체는 숫자 uid만 보장합니다).
-  읽을 수 없으면 uid를, 그것도 없으면 `—` 를 보여줍니다.</sup>
-- **정렬** — 어느 열이든, 폴더 우선. 머리글을 누르면 정렬되고 다시 누르면 방향이 뒤집힙니다
-- **빈 공간 우클릭** — 현재 폴더 기준 메뉴: 새 폴더, 새로 고침, Finder에서 열기, 선택 항목 업로드/다운로드,
-  경로 복사, 상위/홈 이동, 숨김 파일 토글, 전체 선택
-- **파일 조작** — 새 폴더, 이름 바꾸기, 삭제(원격은 재귀), 경로 복사, Finder에서 보기
+- **Split view** — local on the left, remote on the right. Each pane has back / forward / parent / home,
+  direct path entry, and a name filter
+- **Columns** — name · size · modified · owner · permissions
+  <sup>The remote owner's name is read from the `ls -l` line the server sends with each entry (SFTP itself
+  only guarantees a numeric uid). Failing that it shows the uid, and failing that, `—`.</sup>
+- **Sorting** — by any column, folders first. Click a header to sort, click again to reverse
+- **Right-click empty space** — a menu for the current folder: new folder, refresh, open in Finder,
+  upload/download the selection, copy path, go up/home, toggle hidden files, select all
+- **File operations** — new folder, rename, delete (recursive on the remote side), copy path, show in Finder
 
-### ⇅ 전송
+### ⇅ Transfers
 
-- **보내는 법** — 버튼(`⌘→` / `⌘←`), 두 창 사이 끌어다 놓기, Finder에서 원격 창으로 바로 끌어 놓기
-- **폴더째** — 하위 트리를 그대로 복제합니다
-- **전송 큐** — 진행률과 속도 표시, 개별/전체 취소, 실패 항목 재시도
-- **파이프라인** — 요청 64개를 동시에 띄우고 SSH 채널 윈도를 2MB로 올려 왕복 지연을 감춥니다
-  → [전송 성능](#performance)
-- **이름이 겹칠 때** — 기본값은 **물어보기**. 양쪽 파일의 크기·수정일을 나란히 보여주고 고르게 합니다
+- **How to send** — the buttons (`⌘→` / `⌘←`), dragging between the panes, or dragging straight from
+  Finder onto the remote pane
+- **Whole folders** — the subtree is mirrored as-is
+- **Transfer queue** — progress and speed, cancel one or all, retry what failed
+- **Pipelining** — 64 requests in flight and a 2 MB SSH channel window, to hide round-trip latency
+  → [Transfer performance](#performance)
+- **When a name clashes** — the default is **Ask**. Both files' size and date are shown side by side:
 
-  | 선택 | 결과 |
+  | Choice | Result |
   |---|---|
-  | 덮어쓰기 | 있던 파일을 대체 |
-  | 이름 바꿔 저장 | `report 2.pdf` 로 저장 |
-  | 건너뛰기 | 그 항목만 넘어감 |
-  | 취소 | 큐에 아무것도 넣지 않고 중단 |
+  | Overwrite | Replaces the existing file |
+  | Keep Both | Saves it as `report 2.pdf` |
+  | Skip | Passes over that one item |
+  | Cancel | Stops without queueing anything |
 
-  겹치는 게 여러 개면 `남은 N개에도 같은 선택 적용` 으로 한 번만 답하면 됩니다.
-  항상 같은 동작을 원하면 툴바나 설정에서 고정할 수 있습니다.
+  If several names clash, `Apply to the remaining N` answers the rest in one go.
+  To always do the same thing, pin a policy from the toolbar or Settings.
 
-- **더블클릭** — 로컬 파일은 **기본값이 업로드**입니다. `기본 앱으로 열기` 로 바꾸려면 로컬 창의 `…` 메뉴 또는
-  메뉴 막대 `전송 › 로컬 파일 더블클릭`. 폴더는 설정과 무관하게 항상 이동하고, 두 동작 모두 우클릭 메뉴에
-  남아 있습니다.
+- **Double-click** — a local file **uploads by default**. To switch it to `Open with Default App`, use the
+  `…` menu in the local pane or the menu bar's `Transfers › Double-click a local file`. Folders always
+  navigate regardless, and both actions stay in the right-click menu.
 
-### 📝 원격 파일 편집
+### 📝 Editing remote files
 
-원격 파일 우클릭 → `편집기로 열기`. 내려받아 기본 편집기로 열고, **저장할 때마다 자동으로 다시 올립니다.**
-편집 중인 파일은 툴바의 `편집 중` 메뉴에서 관리하고, 편집을 끝내면 임시 사본은 지워집니다.
+Right-click a remote file → `Open in Editor`. A scratch copy is downloaded and handed to your default
+editor, and **every save uploads it again.** Open files are managed from the `Editing` menu in the
+toolbar; stopping deletes the scratch copy.
 
-### 💻 터미널
+### 💻 Terminal
 
-툴바의 `터미널` 또는 `보기 › 터미널`(`⌥⌘S`)로 아래쪽에 셸이 열립니다.
-파일 창이 쓰는 **바로 그 SSH 연결에 채널을 하나 더 여는 방식**이라 —
+The `Terminal` toolbar button or `View › Terminal` (`⌥⌘S`) opens a shell in the bottom panel.
+It is a **second channel on the very SSH connection the file panes use**, which means:
 
-- 비밀번호를 다시 묻지 않고, 호스트 키도 다시 확인하지 않습니다
-- 서버 입장에서 두 번째 접속으로 잡히지 않습니다
-- 연결을 끊으면 함께 닫힙니다
+- no second password prompt, and no second host key check
+- the server does not see a second login
+- it closes with the connection
 
-오른쪽 창이 보고 있는 폴더에서 시작하고, 명령이 끝나 출력이 멎으면 원격 목록을 자동으로 새로 고칩니다.
+It starts in the folder the remote pane is showing, and reloads the remote listing once a command
+finishes and the output falls quiet.
 
 <details>
-<summary><b>양쪽 위치 맞추기, 그리고 하지 않는 것</b></summary>
+<summary><b>Keeping the two in sync — and what this deliberately does not do</b></summary>
 
 <br>
 
-패널의 두 버튼이 창과 셸의 위치를 맞춥니다.
+Two buttons line up the pane and the shell.
 
-| 버튼 | 하는 일 |
+| Button | What it does |
 |---|---|
-| `터미널을 창 위치로` | 오른쪽 창이 보는 폴더로 셸을 `cd` |
-| `창을 터미널 위치로` | 셸이 있는 폴더로 오른쪽 창을 이동 |
+| `Move Terminal to Pane` | `cd`s the shell to the folder the remote pane is showing |
+| `Move Pane to Terminal` | Moves the remote pane to where the shell is |
 
-두 번째 버튼은 셸이 **스스로 알려준** 위치만 씁니다 — OSC 7 보고, 없으면 창 제목의 `user@host:경로`.
-위치를 알아내려고 사용자의 터미널에 명령을 대신 입력하지는 않습니다. 셸이 OSC 7을 보내는 환경이면
-`cd` 할 때마다 원격 창이 알아서 따라갑니다.
+The second one only uses a location the shell **volunteered** — an OSC 7 report, or failing that the
+`user@host:path` in its window title. No command is ever typed into your terminal to find out. If your
+shell sends OSC 7, the remote pane follows every `cd` on its own.
 
-앱이 셸에 명령을 보낼 때는(시작 시 `cd`, 위 버튼) **먼저 입력하다 만 줄을 지웁니다.** 안 그러면 그 앞에
-붙어서 한 줄로 실행됩니다. 지운 내용은 셸의 kill ring에 남아 `Ctrl-Y` 로 되살릴 수 있고,
-`vim`·`less` 같은 전체 화면 프로그램이 떠 있을 때는 아예 보내지 않고 안내합니다.
+When the app does send something to the shell (the `cd` on startup, the buttons above) it **first clears
+whatever you had half-typed.** Otherwise it would be prefixed onto the command and run as one line. The
+cleared text goes to the shell's kill ring, so `Ctrl-Y` brings it back — and while a full-screen program
+like `vim` or `less` owns the screen, nothing is sent at all and the app says so.
 
-`exit` 로 셸을 끝내면 화면은 그대로 남고 `다시 열기` 로 새 셸을 엽니다 — 탭을 오간다고 채널이 다시
-열리지는 않습니다.
+Typing `exit` ends the shell but leaves the screen in place; `Reopen` starts a new one. Switching tabs
+never opens a channel behind your back.
 
-터미널 색은 앱 테마를 따릅니다. 어둡게로 바꾸면 이미 떠 있는 셸의 배경과 글자색도 함께 바뀝니다.
+The terminal follows the app theme. Switch to dark and an already-open shell changes its background and
+text colour with it.
 
 </details>
 
-### 🌐 언어와 도움말
+### 🌐 Language and help
 
-- **한국어 / 영어** — 설정 첫 탭에서 고릅니다. **고르는 즉시 바뀌고 앱을 다시 실행할 필요가 없습니다.**
-  저장된 값이 없는 첫 실행에는 macOS의 언어 설정을 따릅니다.
-- **도움말 (`⌘?`)** — `도움말 › SFTP Manager 도움말`.
-  시작하기 · 파일 탐색 · 전송 · 원격 편집 · 터미널 · 단축키 · 보안 7개 주제를 두 언어로 담고 있습니다.
+- **English / Korean** — picked on the first Settings tab. **It changes immediately; no relaunch.**
+  With nothing stored yet, a first launch follows the language macOS is set to.
+- **Help (`⌘?`)** — `Help › SFTP Manager Help`. Seven topics in both languages: getting started,
+  browsing, transfers, editing remote files, terminal, shortcuts, and security.
 
-### ⚙️ 설정 (`⌘,`)
+### ⚙️ Settings (`⌘,`)
 
-| 탭 | 내용 |
+| Tab | Contents |
 |---|---|
-| 일반 | 언어, 테마(시스템/밝게/어둡게), 비밀번호 정책 안내 |
-| 파일 목록 | 숨김 파일, 기본 정렬 기준·방향, 로컬 더블클릭 동작 |
-| 전송 | 이름 충돌 기본 정책, 시작 시 전송 목록 열기, 완료 알림, 동시 요청 수 |
-| 고급 | 편집 감시 주기, known_hosts·서버 목록 위치, 임시 파일 정리, 설정 초기화 |
-| 정보 | 만든이, 버전, 사용 기술 |
+| General | Language, theme (system / light / dark), password policy |
+| File Lists | Hidden files, default sort column and direction, local double-click action |
+| Transfers | Default answer to a name clash, open the queue at launch, notify on finish, concurrent requests |
+| Advanced | Edit polling interval, known_hosts and server-list paths, scratch cleanup, reset settings |
+| About | Author, version, what it is built with |
 
-아래 패널은 `전송` 과 `터미널` 탭이 같은 자리를 나눠 씁니다. 손잡이를 끌어 높이를 바꾸고, 두 번 클릭하면
-내용에 맞춘 자동 크기로 돌아갑니다. 조절한 높이는 저장됩니다.
+The bottom panel is shared by the `Transfers` and `Terminal` tabs. Drag the handle to resize it, or
+double-click to fit the contents. The height you choose is remembered.
 
 <a id="security"></a>
 
-### 🔐 보안
+### 🔐 Security
 
-- **비밀번호는 저장하지 않음** — 연결할 때마다 입력받고 메모리에만 둡니다. 키체인을 포함해 어디에도
-  기록하지 않습니다. 개인 키는 **경로만** 저장하고, 키 파일이 실제로 암호화되어 있을 때만 키 암호를 묻습니다
-  (OpenSSH 키 헤더의 cipher 필드로 판별). 이전 버전이 키체인에 저장해 둔 자격 증명은 첫 실행 때 한 번 삭제됩니다.
-- **호스트 키 검증** — `~/.ssh/known_hosts`(`ssh` 와 같은 파일)로 서버 신원을 확인합니다. 처음 보는 서버는
-  SHA256 지문을 보여주고 승인을 받으며, 키가 바뀌면 이전 지문과 함께 경고하고, `@revoked` 키는 거부합니다.
-  검증은 키 교환 단계에서 이뤄지므로 **승인 전에는 비밀번호나 키가 서버로 전송되지 않습니다.**
-- **서버 프로필** — 이름 · 호스트 · 포트 · 사용자 · 시작 경로
-- **인증** — 비밀번호, ED25519 개인 키, RSA 개인 키
+- **Passwords are never stored** — you enter one on each connection and it stays in memory only. Nothing
+  is written anywhere, Keychain included. For a private key only the **path** is saved, and you are asked
+  for a passphrase only when the key file is actually encrypted (read from the cipher field in the OpenSSH
+  key header). Credentials an older version put in the Keychain are deleted once, on first launch.
+- **Host key verification** — servers are checked against `~/.ssh/known_hosts`, the same file `ssh` uses.
+  A new server shows its SHA256 fingerprint for approval, a changed key raises a warning next to the old
+  fingerprint, and a `@revoked` key is refused. This happens during key exchange, so **nothing is sent to
+  the server before you approve.**
+- **Server profiles** — name · host · port · user · start folders
+- **Authentication** — password, ED25519 private key, RSA private key
 
-자세한 방어 설계는 [🛡️ 보안 설계](#security-design)에 있습니다.
+The defensive design is spelled out under [🛡️ Security design](#security-design).
 
 ---
 
 <a id="shortcuts"></a>
 
-## ⌨️ 단축키
+## ⌨️ Shortcuts
 
 | | | | |
 |---|---|---|---|
-| `⌘N` | 새 연결 | `⌘R` | 클릭한 창 새로 고침 |
-| `⌘,` | 설정 | `⇧⌘R` | 양쪽 새로 고침 |
-| `⌘?` | 도움말 | `⌘↑` | 로컬 상위 폴더 |
-| `⌘→` | 업로드 | `⇧⌘↑` | 원격 상위 폴더 |
-| `⌘←` | 다운로드 | `⌥⌘T` | 전송 목록 열기/닫기 |
-| | | `⌥⌘S` | 터미널 열기/닫기 |
+| `⌘N` | New connection | `⌘R` | Refresh the clicked pane |
+| `⌘,` | Settings | `⇧⌘R` | Refresh both panes |
+| `⌘?` | Help | `⌘↑` | Local parent folder |
+| `⌘→` | Upload | `⇧⌘↑` | Remote parent folder |
+| `⌘←` | Download | `⌥⌘T` | Show/hide the transfer list |
+| | | `⌥⌘S` | Show/hide the terminal |
 
-`⌘R` 은 **마지막으로 클릭한 창 하나만** 새로 고칩니다. 어느 창인지는 테두리로 표시됩니다.
+`⌘R` refreshes **only the pane you last clicked** — the highlighted border shows which one.
 
 ---
 
 <a id="dependencies"></a>
 
-## 📦 의존성
+## 📦 Dependencies
 
-| 패키지 | 라이선스 | 쓰임 |
+| Package | License | Used for |
 |---|---|---|
-| [Citadel](https://github.com/orlandos-nl/Citadel) | MIT | SSH 연결, SFTP, PTY 채널 |
-| [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) | MIT | 터미널 패널의 ANSI/vt100 에뮬레이션 |
+| [Citadel](https://github.com/orlandos-nl/Citadel) | MIT | SSH connection, SFTP, PTY channel |
+| [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) | MIT | ANSI/vt100 emulation in the terminal panel |
 
-나머지(swift-nio, swift-crypto, swift-log, swift-collections, BigInt 등)는 위 두 패키지가 끌어옵니다.
+Everything else (swift-nio, swift-crypto, swift-log, swift-collections, BigInt and so on) is pulled in by
+those two.
 
 > [!NOTE]
-> SSH 전송 계층은 `apple/swift-nio-ssh` 가 아니라
-> [`Wellz26/swift-nio-ssh`](https://github.com/Wellz26/swift-nio-ssh) 포크에서 옵니다.
-> 이 앱이 고른 게 아니라 **Citadel 0.12.1이 자기 `Package.swift` 에 그렇게 선언**해 둔 것입니다
-> (인증서 인증과 Mac Catalyst 대응이 추가된 포크). SSH 클라이언트에서는 짚고 넘어갈 부분이라 적어 둡니다.
-> 정확한 버전과 커밋은 `Package.resolved` 에 고정되어 있습니다.
+> The SSH transport does not come from `apple/swift-nio-ssh` but from the
+> [`Wellz26/swift-nio-ssh`](https://github.com/Wellz26/swift-nio-ssh) fork. That is not this app's choice —
+> **Citadel 0.12.1 declares it in its own `Package.swift`** (the fork adds certificate authentication and
+> Mac Catalyst support). It is worth stating plainly in an SSH client. The exact version and commit are
+> pinned in `Package.resolved`.
 
 ---
 
 <a id="build"></a>
 
-## 🧰 요구 사항과 빌드
+## 🧰 Requirements and building
 
-- **macOS 15 이상** — 원격 셸이 쓰는 PTY API가 macOS 15부터입니다
-- **Swift 6.x** — Command Line Tools만 있어도 됩니다. Xcode는 필요 없습니다
+- **macOS 15 or later** — the PTY API the remote shell uses starts at macOS 15
+- **Swift 6.x** — Command Line Tools are enough. Xcode is not required
 
 ```bash
-./Scripts/make_icon.sh     # 앱 아이콘 생성 (최초 1회)
-./Scripts/make_app.sh      # build/SFTPManager.app 생성
+./Scripts/make_icon.sh     # generate the app icon (once)
+./Scripts/make_app.sh      # produces build/SFTPManager.app
 open build/SFTPManager.app
 ```
 
-개발 중에는 `swift run SFTPManager` 로도 실행되지만, Dock 아이콘과 안정적인 코드 서명 신원을 위해서는
-`make_app.sh` 로 만든 번들을 쓰는 편이 좋습니다(스크립트가 ad-hoc 서명을 붙입니다).
+`swift run SFTPManager` works during development, but the bundle from `make_app.sh` is the better thing to
+run: it gets a Dock icon and a stable code-signing identity (the script applies an ad-hoc signature).
 
 ---
 
 <a id="verification"></a>
 
-## ✅ 검증
+## ✅ Verification
 
-Command Line Tools 환경에는 XCTest가 없어서, **실행 가능한 셀프테스트**를 씁니다.
+There is no XCTest in a Command Line Tools install, so this repo uses a **runnable self-test** instead.
 
 ```bash
-# 순수 로직만 — 경로 처리, 정렬/필터/히스토리, 셸 로직, 번역, 드래그 페이로드
+# pure logic — path handling, sorting/filtering/history, shell logic, translations, drag payloads
 swift run SFTPManager --selftest
 
-# 실제 서버 상대로 SFTP 왕복까지
-#   업로드 → 목록 → 다운로드(바이트 비교) → 이름 바꾸기 → 재귀 탐색 → 재귀 삭제
+# against a real server, all the way through an SFTP round trip
+#   upload → list → download (compared byte for byte) → rename → recursive walk → recursive delete
 swift run SFTPManager --selftest \
     --host 127.0.0.1 --port 2222 --user "$USER" --key ~/.ssh/id_ed25519
 
-# 전송 속도 측정 (지정한 크기만큼 주고받고 MB/s 출력)
+# throughput (transfers the given size each way and prints MB/s)
 swift run SFTPManager --selftest \
     --host 127.0.0.1 --port 2222 --user "$USER" --key ~/.ssh/id_ed25519 --bench-mb 64
 
-# 암호로 보호된 키
+# a passphrase-protected key
 swift run SFTPManager --selftest \
     --host 127.0.0.1 --port 2222 --user "$USER" --key ~/.ssh/id_ed25519 --passphrase '...'
 ```
 
-**번역 누락은 정적으로도 검사합니다** — 뷰나 모델에 한글 문자열이 그대로 박혀 있으면 실패합니다.
+**Missing translations are caught statically too** — the check fails on any Korean string still hard-coded
+into a view or a model.
 
 ```bash
 ./Scripts/check_l10n.sh
 ```
 
-`--selftest` 는 열거 가능한 것(enum 레이블, 도움말 전체)을 훑고, 이 스크립트가 나머지 `L` 항목을
-소스 검색으로 덮습니다.
+`--selftest` walks everything enumerable (enum labels, the whole help book); this script covers the
+remaining `L` entries by searching the source.
 
 <details>
-<summary><b>UI 렌더링 확인 — 오프스크린 스냅샷</b> (화면 기록 권한 불필요)</summary>
+<summary><b>Checking what the UI renders — offscreen snapshots</b> (no screen-recording permission needed)</summary>
 
 <br>
 
 ```bash
-swift run SFTPManager --snapshot /tmp/ui.png                       # 전체 창
+swift run SFTPManager --snapshot /tmp/ui.png                       # the whole window
 swift run SFTPManager --snapshot /tmp/sidebar.png --view sidebar
 swift run SFTPManager --snapshot /tmp/settings.png --view settings --tab advanced
 
-# 고정 예시 데이터 — 실제 홈 디렉터리·저장된 서버를 읽지 않습니다
+# fixed sample data — reads neither your home directory nor your saved servers
 swift run SFTPManager --snapshot /tmp/demo.png --demo
 
-# 도움말 / 정보 창, 언어와 주제를 지정해서
+# the help and about windows, in a chosen language and topic
 swift run SFTPManager --snapshot /tmp/help.png  --view help --lang en --topic terminal
 swift run SFTPManager --snapshot /tmp/about.png --view about --lang ko
 
-# 전송 목록 레이아웃 (샘플 항목 N개, 창 크기 지정)
+# transfer list layout (N sample rows, given window size)
 swift run SFTPManager --snapshot /tmp/queue.png --view transfers --rows 12 --size 1100x620
 ```
 
-스냅샷은 지정한 크기의 고정 컨테이너에 그려서 잘라냅니다 — 실제 창과 같은 조건이라 레이아웃이 창 밖으로
-넘치는 문제도 그대로 드러납니다.
+Snapshots are drawn into a fixed-size container and clipped — the same condition as a real window, so
+layout that overflows shows up as overflow.
 
-> `NavigationSplitView` 의 사이드바는 vibrancy 레이어에 있어 전체 창 스냅샷에서는 비어 보입니다.
-> 사이드바를 확인할 때는 `--view sidebar` 를 쓰세요.
+> A `NavigationSplitView` sidebar lives on a vibrancy layer and comes out empty in a whole-window
+> snapshot. Use `--view sidebar` to check it.
 
 </details>
 
@@ -268,35 +280,35 @@ swift run SFTPManager --snapshot /tmp/queue.png --view transfers --rows 12 --siz
 
 <a id="performance"></a>
 
-## ⚡ 전송 성능
+## ⚡ Transfer performance
 
-전송은 OpenSSH 클라이언트와 같은 방식으로 동작합니다.
+Transfers work the way the OpenSSH client's do.
 
-| 조건 | 이전 | 현재 |
+| Condition | Before | Now |
 |---|---:|---:|
-| RTT 40ms · 8MB 업로드 | 0.7 MB/s | **24.5 MB/s** |
-| RTT 40ms · 8MB 다운로드 | 0.7 MB/s | **16.0 MB/s** |
-| 루프백 · 64MB 업로드 | 237.8 MB/s | **473.7 MB/s** |
-| 루프백 · 64MB 다운로드 | 248.6 MB/s | **344.6 MB/s** |
+| 40 ms RTT · 8 MB upload | 0.7 MB/s | **24.5 MB/s** |
+| 40 ms RTT · 8 MB download | 0.7 MB/s | **16.0 MB/s** |
+| Loopback · 64 MB upload | 237.8 MB/s | **473.7 MB/s** |
+| Loopback · 64 MB download | 248.6 MB/s | **344.6 MB/s** |
 
-<sup>같은 조건에서 <code>scp</code> 는 각각 8.8 MB/s, 202.5 MB/s</sup>
+<sup>Under the same conditions <code>scp</code> manages 8.8 MB/s and 202.5 MB/s respectively</sup>
 
 <details>
-<summary><b>느렸던 이유 두 가지</b></summary>
+<summary><b>The two reasons it used to be slow</b></summary>
 
 <br>
 
-**1. 요청을 하나씩 보내고 응답을 기다렸습니다.**
-32KB마다 왕복을 기다리면 속도 상한이 `32KB / RTT` 로 고정됩니다(RTT 40ms → 0.8 MB/s).
-이제 요청 64개를 동시에 띄우고 도착하는 대로 처리합니다.
+**1. Requests went out one at a time, each waiting for its reply.**
+Waiting for a round trip every 32 KB caps the rate at `32 KB / RTT` (0.8 MB/s at 40 ms RTT).
+Now 64 requests are in flight and replies are handled as they land.
 
-**2. SSH 채널 수신 윈도가 128KB였습니다.**
-swift-nio-ssh는 자식 채널의 수신 윈도를 `maximumPacketSize`(기본 128KB)에서 가져오므로, 아무리 많이
-요청해도 서버는 왕복당 128KB만 보낼 수 있었습니다. OpenSSH와 같은 2MB로 올렸습니다.
-**다운로드가 업로드보다 훨씬 느렸던 원인**이 이것입니다.
+**2. The SSH channel's receive window was 128 KB.**
+swift-nio-ssh takes a child channel's receive window from `maximumPacketSize` (128 KB by default), so
+however much was requested, the server could only send 128 KB per round trip. It is raised to 2 MB, the
+same as OpenSSH. **That is why downloads were so much slower than uploads.**
 
-진행률 콜백도 메인 액터로 넘기기 전에 100ms 단위로 합칩니다 — 초당 수천 번의 액터 홉이 전송보다
-비쌌기 때문입니다.
+Progress callbacks are also coalesced into 100 ms buckets before hopping to the main actor — thousands of
+actor hops per second cost more than the transfer did.
 
 </details>
 
@@ -304,99 +316,105 @@ swift-nio-ssh는 자식 채널의 수신 윈도를 `maximumPacketSize`(기본 12
 
 <a id="security-design"></a>
 
-## 🛡️ 보안 설계
+## 🛡️ Security design
 
 > [!IMPORTANT]
-> 서버가 보내는 값은 **하나도 믿지 않는다**는 전제로 만들었습니다. 파일 이름도 서버가 정하는 값입니다.
+> Built on the assumption that **nothing the server sends can be trusted.** A filename is a value the
+> server chooses.
 
-- **셸에 넘기는 경로는 항상 인용** — 터미널에 보내는 `cd` 는 경로를 작은따옴표로 감싸고, 안의 `'` 를
-  `'\''` 로 닫았다 여는 POSIX 방식으로 이스케이프합니다. 서버가 파일 이름을 `$(...)` 나 `;rm -rf ~` 로
-  지어도 명령이 되지 않습니다.
-- **원격이 준 이름은 한 조각으로만 취급** — `/`, `.`, `..`, 널 바이트가 든 이름은 프로토콜상 정상적인
-  디렉터리 항목이 아니므로 목록에서 걸러냅니다.
-- **내려받는 경로는 대상 폴더를 벗어날 수 없음** — 폴더를 통째로 받을 때도 각 경로가 사용자가 고른 폴더
-  안에 있는지 검사하고, 벗어나는 항목은 전송 큐에 **실패로 남깁니다**(조용히 넘기지 않습니다).
-  원격 파일을 편집기로 열 때 만드는 임시 사본도 같은 검사를 거칩니다.
-- **이름 입력란은 경로가 아님** — 새 폴더·이름 바꾸기에 `/` 가 들어간 값은 거부합니다.
-- 호스트 키 검증과 비밀번호 비저장 정책은 [🔐 보안](#security) 항목을 참고하세요.
+- **Paths handed to the shell are always quoted** — a `cd` sent to the terminal is wrapped in single
+  quotes, with any `'` escaped the POSIX way by closing and reopening (`'\''`). A server can name a file
+  `$(...)` or `;rm -rf ~` and it will not become a command.
+- **A name from the server is treated as one component** — names containing `/`, `.`, `..` or a NUL byte
+  are not legal directory entries, so they are dropped from the listing.
+- **A download can never land outside the target folder** — even when a whole folder is transferred, every
+  path is checked to be inside the folder you picked, and anything that escapes is **left in the queue as
+  a failure** rather than silently skipped. The scratch copy made when opening a remote file in an editor
+  goes through the same check.
+- **A name field is not a path** — new folder and rename reject any value containing `/`.
+- Host key verification and the never-store-passwords policy are described under [🔐 Security](#security).
 
 ---
 
 <a id="limitations"></a>
 
-## ⚠️ 알려진 제약
+## ⚠️ Known limitations
 
-- **RSA 키** — 백엔드(Citadel)가 레거시 `ssh-rsa` 서명만 지원합니다. OpenSSH 8.8 이상 서버는 이를 기본적으로
-  거부하므로 **ED25519 키를 권장**합니다. RSA를 꼭 써야 한다면 서버 `sshd_config` 에
-  `PubkeyAcceptedAlgorithms +ssh-rsa` 가 필요합니다. 앱이 이 상황을 감지해 오류 메시지에 안내를 넣습니다.
-- **암호화된 개인 키** — 키 암호는 ED25519/RSA OpenSSH 키만 처리합니다. ECDSA 키는 미지원입니다.
-- **로컬 → 로컬 복사**는 지원하지 않습니다.
-- **언어 전환의 범위** — 앱이 직접 그리는 화면은 즉시 바뀌지만, macOS가 대신 넣어 주는 메뉴 항목
-  (`종료`·`가리기`·`서비스`, 편집/윈도우 메뉴)은 시스템 언어를 따릅니다. `.lproj` 번들이 아니라 앱 안의
-  문자열 표로 전환하기 때문입니다 — 그 대신 다시 실행하지 않고도 바로 바뀝니다.
-- **비밀번호 재입력** — 저장하지 않으므로 연결할 때마다 입력해야 합니다. 세션 중 캐시도 하지 않습니다.
-- **원격 셸** — 서버가 `ForceCommand internal-sftp` 등으로 셸을 막아 두었다면 터미널이 열리지 않습니다.
-  `창을 터미널 위치로` 는 셸이 위치를 알리지 않는 환경(제목도 OSC 7도 없는 최소 프롬프트)에서는 쓸 수 없고,
-  그 이유를 안내합니다. 명령 종료는 SSH가 알려주지 않으므로, 출력이 0.7초간 멎으면 끝난 것으로 봅니다.
-- **전송 큐는 파일을 한 번에 하나씩** 처리합니다. 파일 하나의 속도는 위 표와 같지만, 아주 작은 파일이 많은
-  폴더는 파일마다 열기/닫기 왕복이 필요해 여전히 느립니다.
+- **RSA keys** — the backend (Citadel) only signs with the legacy `ssh-rsa` algorithm, which OpenSSH 8.8
+  and later reject by default, so **ED25519 keys are recommended**. If you must use RSA, the server needs
+  `PubkeyAcceptedAlgorithms +ssh-rsa` in `sshd_config`. The app detects this case and says so in the error.
+- **Encrypted private keys** — passphrases are handled for ED25519 and RSA OpenSSH keys only. ECDSA keys
+  are not supported.
+- **Local-to-local copying** is not supported.
+- **What the language switch covers** — every screen the app draws itself changes immediately, but the menu
+  items macOS supplies (`Quit`, `Hide`, `Services`, and the Edit and Window menus) follow the system
+  language. That is the cost of using an in-app string table instead of `.lproj` bundles — in exchange,
+  the switch needs no relaunch.
+- **Re-entering the password** — nothing is stored, so you type it on every connection. It is not cached
+  during a session either.
+- **The remote shell** — if the server blocks shells (`ForceCommand internal-sftp` and the like) the
+  terminal will not open. `Move Pane to Terminal` cannot work where the shell never announces its location
+  (a minimal prompt with no title and no OSC 7), and it explains why. SSH does not report that a command
+  finished, so 0.7 seconds of silence is taken to mean it has.
+- **The queue transfers one file at a time.** A single file moves at the rates above, but a folder full of
+  very small files is still slow, because each one needs its own open/close round trip.
 
 ---
 
 <a id="layout"></a>
 
-## 🗺️ 구조
+## 🗺️ Layout
 
 ```
 Sources/SFTPManager/
-├─ main.swift                 진입점 — GUI / --selftest / --snapshot 분기
-├─ SFTPManagerApp.swift       App 정의, 메뉴 명령, 도움말·정보 창, AppDelegate
-├─ SelfTest.swift             헤드리스 검증
-├─ Snapshot.swift             오프스크린 UI 렌더링
+├─ main.swift                 entry point — GUI / --selftest / --snapshot
+├─ SFTPManagerApp.swift       App definition, menu commands, help and about windows, AppDelegate
+├─ SelfTest.swift             headless verification
+├─ Snapshot.swift             offscreen UI rendering
 ├─ Model/
-│  ├─ FileItem.swift          두 창이 공유하는 파일 항목 + 경로 유틸(봉쇄 검사 포함)
-│  ├─ FileGlyph.swift         확장자·이름·폴더별 아이콘과 색 표
-│  ├─ Localization.swift      한국어/영어 문자열 표와 언어 전환
-│  └─ Connection.swift        서버 프로필 + 디스크 저장 (구 스키마 마이그레이션 포함)
+│  ├─ FileItem.swift          the entry both panes share + path utilities (containment checks)
+│  ├─ FileGlyph.swift         icon and tint tables by extension, name and folder
+│  ├─ Localization.swift      the English/Korean string table and the language switch
+│  └─ Connection.swift        server profiles + on-disk storage (with schema migration)
 ├─ Core/
-│  ├─ SFTPSession.swift       Citadel 기반 SSH/SFTP 액터 (목록·전송·재귀 삭제·트리 탐색)
-│  ├─ ShellSession.swift      같은 연결 위의 PTY 셸 (SwiftTerm 연결, 유휴 감지 새로 고침)
-│  ├─ LocalFileSystem.swift   로컬 파일 조작
-│  ├─ KnownHosts.swift        known_hosts 파싱·매칭(해시 항목 포함)·지문 계산·기록
-│  ├─ HostKeyValidator.swift  키 교환 단계의 호스트 키 검증과 거부 사유
-│  ├─ OpenSSHKeyInspector.swift  개인 키가 암호화되어 있는지 헤더로 판별
-│  ├─ Keychain.swift          구버전이 저장한 자격 증명 정리 (더 이상 저장하지 않음)
-│  ├─ RemoteEdit.swift        편집 중인 원격 파일과 저장 감지 규칙
-│  ├─ PaneState.swift         한쪽 창의 상태 (경로·목록·선택·정렬·히스토리)
-│  ├─ Transfer.swift          전송 항목 모델
-│  ├─ Preferences.swift       설정 읽기/쓰기, 테마 적용
-│  ├─ AppModel.swift          앱 전역 상태, 연결 관리, 파일 조작
-│  ├─ AppModel+Transfers.swift  전송 큐 확장·진행률·충돌 정책
-│  └─ AppModel+Editing.swift  내려받기·감시·자동 재업로드
-└─ Views/                     SwiftUI 화면
-   ├─ HelpBook.swift          도움말 내용 (두 언어, 데이터로만)
-   ├─ HelpView.swift          도움말 창
-   └─ AboutView.swift         만든이·버전·사용 기술
+│  ├─ SFTPSession.swift       the Citadel-backed SSH/SFTP actor (listing, transfers, recursive delete, walk)
+│  ├─ ShellSession.swift      the PTY shell on that same connection (SwiftTerm wiring, idle-based refresh)
+│  ├─ LocalFileSystem.swift   local file operations
+│  ├─ KnownHosts.swift        known_hosts parsing, matching (hashed entries included), fingerprints, writing
+│  ├─ HostKeyValidator.swift  host key verification during key exchange, and why one is refused
+│  ├─ OpenSSHKeyInspector.swift  reads the key header to tell whether a private key is encrypted
+│  ├─ Keychain.swift          clears credentials an older version stored (nothing is stored now)
+│  ├─ RemoteEdit.swift        remote files open for editing, and the save-detection rule
+│  ├─ PaneState.swift         one pane's state (path, listing, selection, sorting, history)
+│  ├─ Transfer.swift          the transfer item model
+│  ├─ Preferences.swift       reading and writing settings, applying the theme
+│  ├─ AppModel.swift          app-wide state, connection management, file operations
+│  ├─ AppModel+Transfers.swift  queue expansion, progress, conflict policy
+│  └─ AppModel+Editing.swift  download, watch, automatic re-upload
+└─ Views/                     SwiftUI screens
+   ├─ HelpBook.swift          help content (both languages, as data only)
+   ├─ HelpView.swift          the help window
+   └─ AboutView.swift         author, version, what it is built with
 
 Scripts/
-├─ make_app.sh                .app 번들 조립 + ad-hoc 서명
-├─ check_l10n.sh              하드코딩된 한글 문자열 검사
-├─ make_icon.sh               아이콘 생성
-└─ DrawIcon.swift             CoreGraphics 아이콘 드로잉
+├─ make_app.sh                assembles the .app bundle + ad-hoc signature
+├─ check_l10n.sh              finds hard-coded Korean strings
+├─ make_icon.sh               generates the icon
+└─ DrawIcon.swift             CoreGraphics icon drawing
 ```
 
 ---
 
 <a id="license"></a>
 
-## 📄 라이선스
+## 📄 License
 
-MIT — [LICENSE](LICENSE) 참조.
+MIT — see [LICENSE](LICENSE).
 
 <a id="author"></a>
 
-## 👤 만든이
+## 👤 Author
 
 **jackson** &lt;wawds123@gmail.com&gt;
 
-앱 안에서는 `SFTP Manager › SFTP Manager 정보` 또는 `설정 › 정보` 에서 볼 수 있습니다.
+In the app: `SFTP Manager › About SFTP Manager`, or `Settings › About`.
