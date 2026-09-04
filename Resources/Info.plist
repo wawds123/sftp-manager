@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>ko</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>ko</string>
+        <string>en</string>
+    </array>
+    <key>CFBundleExecutable</key>
+    <string>SFTPManager</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.sftpmanager.app</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>SFTP Manager</string>
+    <key>CFBundleDisplayName</key>
+    <string>SFTP Manager</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>15.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright (c) 2026 jackson (wawds123@gmail.com) · MIT License</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSSupportsAutomaticTermination</key>
+    <true/>
+</dict>
+</plist>
