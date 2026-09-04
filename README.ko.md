@@ -15,6 +15,8 @@
 
 [English](README.md) · **한국어**
 
+[**직접 빌드하기 →**](#build) · Command Line Tools만 있으면 됩니다
+
 </div>
 
 ---
@@ -24,7 +26,7 @@
 | | |
 |---|---|
 | [✨ 기능](#features) | [⌨️ 단축키](#shortcuts) |
-| [📦 의존성](#dependencies) | [🧰 요구 사항과 빌드](#build) |
+| [📦 의존성](#dependencies) | [🧰 직접 빌드하기](#build) |
 | [✅ 검증](#verification) | [⚡ 전송 성능](#performance) |
 | [🛡️ 보안 설계](#security-design) | [⚠️ 알려진 제약](#limitations) |
 | [🗺️ 구조](#layout) | [📄 라이선스](#license) |
@@ -188,19 +190,61 @@
 
 <a id="build"></a>
 
-## 🧰 요구 사항과 빌드
+## 🧰 직접 빌드하기
 
-- **macOS 15 이상** — 원격 셸이 쓰는 PTY API가 macOS 15부터입니다
-- **Swift 6.x** — Command Line Tools만 있어도 됩니다. Xcode는 필요 없습니다
+**소스에서 빌드하는 것이 원래 설치 방법입니다.** 편의를 위해
+[릴리즈 빌드](https://github.com/wawds123/sftp-manager/releases)를 올려 두긴 했지만, 공증이 아닌 ad-hoc
+서명이라 내려받으면 macOS가 격리해서 손으로 풀어줘야 합니다. 직접 빌드하면 명령 한 줄이면 되고
+macOS도 군말 없이 실행합니다.
+
+### 준비물
+
+| | |
+|---|---|
+| macOS | 15 이상 — 원격 셸이 쓰는 PTY API가 여기서부터입니다 |
+| Swift | 6.x. Command Line Tools에 포함돼 있습니다. **Xcode는 필요 없습니다** |
+
+`swift --version` 이 응답하지 않으면 Command Line Tools를 설치하세요.
 
 ```bash
-./Scripts/make_icon.sh     # 앱 아이콘 생성 (최초 1회)
+xcode-select --install
+```
+
+### 빌드와 실행
+
+```bash
+git clone https://github.com/wawds123/sftp-manager.git
+cd sftp-manager
+
+./Scripts/make_icon.sh     # Resources/AppIcon.icns 생성 (최초 1회)
 ./Scripts/make_app.sh      # build/SFTPManager.app 생성
 open build/SFTPManager.app
 ```
 
-개발 중에는 `swift run SFTPManager` 로도 실행되지만, Dock 아이콘과 안정적인 코드 서명 신원을 위해서는
-`make_app.sh` 로 만든 번들을 쓰는 편이 좋습니다(스크립트가 ad-hoc 서명을 붙입니다).
+첫 빌드는 의존성을 받아 컴파일하므로 몇 분 걸립니다. 이후로는 증분 빌드라 빠릅니다. `.build/` 는 몇 GB까지
+커지지만 git이 무시하므로, 공간이 필요하면 아무 때나 지워도 됩니다.
+
+소스 폴더 밖으로 옮기려면 `mv build/SFTPManager.app /Applications/` 하면 됩니다.
+
+본인이 직접 서명한 것이라 격리 속성이 붙지 않고, 따로 풀어줄 것도 없습니다.
+
+### 옵션
+
+```bash
+./Scripts/make_app.sh --universal   # arm64 + x86_64 를 한 번들에
+./Scripts/make_app.sh debug         # 디버그 빌드, 심볼 유지
+```
+
+릴리즈 빌드는 서명 전에 스트립해서 크기가 절반쯤 됩니다(슬라이스당 18.8MB → 9.0MB).
+`--universal` 은 두 번째 아키텍처를 타깃 트리플로 따로 빌드해 `lipo` 로 합칩니다 —
+`swift build --arch a --arch b` 는 Xcode 빌드 시스템을 요구하기 때문입니다.
+
+### 개발할 때
+
+`swift run SFTPManager` 는 빌드 디렉터리에서 바로 실행돼서 반복 작업에 빠릅니다. 실제로 쓸 때는
+`make_app.sh` 로 만든 번들이 낫습니다 — Dock 아이콘이 붙고 코드 서명 신원이 고정됩니다.
+
+셀프테스트, 번역 검사, 오프스크린 스냅샷은 [✅ 검증](#verification)에 있습니다. 전부 Xcode 없이 돕니다.
 
 ---
 

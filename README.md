@@ -15,6 +15,8 @@ This Mac on the left, your server on the right. Move files between the two.
 
 **English** · [한국어](README.ko.md)
 
+[**Build it yourself →**](#build) · Command Line Tools only, no Xcode
+
 </div>
 
 ---
@@ -24,7 +26,7 @@ This Mac on the left, your server on the right. Move files between the two.
 | | |
 |---|---|
 | [✨ Features](#features) | [⌨️ Shortcuts](#shortcuts) |
-| [📦 Dependencies](#dependencies) | [🧰 Requirements and building](#build) |
+| [📦 Dependencies](#dependencies) | [🧰 Building it yourself](#build) |
 | [✅ Verification](#verification) | [⚡ Transfer performance](#performance) |
 | [🛡️ Security design](#security-design) | [⚠️ Known limitations](#limitations) |
 | [🗺️ Layout](#layout) | [📄 License](#license) |
@@ -197,19 +199,62 @@ those two.
 
 <a id="build"></a>
 
-## 🧰 Requirements and building
+## 🧰 Building it yourself
 
-- **macOS 15 or later** — the PTY API the remote shell uses starts at macOS 15
-- **Swift 6.x** — Command Line Tools are enough. Xcode is not required
+**Building from source is the intended way to install this.** There is a
+[release build](https://github.com/wawds123/sftp-manager/releases) for convenience, but it is ad-hoc
+signed rather than notarized, so macOS quarantines it on download and you have to clear that by hand.
+Building takes one command and produces a bundle macOS is happy with.
+
+### What you need
+
+| | |
+|---|---|
+| macOS | 15 or later — the PTY API the remote shell uses starts there |
+| Swift | 6.x, which ships with the Command Line Tools. **Xcode is not required** |
+
+If `swift --version` does not answer, install the Command Line Tools:
 
 ```bash
-./Scripts/make_icon.sh     # generate the app icon (once)
+xcode-select --install
+```
+
+### Build and run
+
+```bash
+git clone https://github.com/wawds123/sftp-manager.git
+cd sftp-manager
+
+./Scripts/make_icon.sh     # draws Resources/AppIcon.icns (once)
 ./Scripts/make_app.sh      # produces build/SFTPManager.app
 open build/SFTPManager.app
 ```
 
-`swift run SFTPManager` works during development, but the bundle from `make_app.sh` is the better thing to
-run: it gets a Dock icon and a stable code-signing identity (the script applies an ad-hoc signature).
+The first build fetches the dependencies and compiles them, so give it a few minutes; later builds are
+incremental. `.build/` grows to a few GB and is ignored by git — delete it any time to reclaim the space.
+
+To move it out of the source tree: `mv build/SFTPManager.app /Applications/`.
+
+Because you signed it locally, there is no quarantine flag and nothing to clear.
+
+### Options
+
+```bash
+./Scripts/make_app.sh --universal   # arm64 + x86_64 in one bundle
+./Scripts/make_app.sh debug         # debug build, symbols kept
+```
+
+A release build is stripped before signing, which roughly halves it (18.8 MB → 9.0 MB per slice).
+`--universal` builds the second architecture with an explicit target triple and joins the slices with
+`lipo`, because `swift build --arch a --arch b` needs Xcode's build system.
+
+### Working on it
+
+`swift run SFTPManager` runs straight from the build directory, which is quicker for iterating. Prefer
+the bundle from `make_app.sh` for actual use: it gets a Dock icon and a stable code-signing identity.
+
+See [✅ Verification](#verification) for the self-test, the translation check, and the offscreen
+snapshot renderer — all of which run without Xcode.
 
 ---
 
