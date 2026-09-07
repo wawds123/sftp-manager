@@ -119,7 +119,9 @@ final class AppModel: ObservableObject {
     @Published var hostKeyRequest: HostKeyRequest?
 
     var session: SFTPSession?
-    let store = ConnectionStore()
+    // `--demo` swaps in a scratch file, so a stray save in that mode cannot
+    // touch the real server list.
+    let store = Demo.isOn ? ConnectionStore.scratch() : ConnectionStore()
     private var connectTask: Task<Void, Never>?
     /// Set while `loadPreferences()` runs. Assigning a preference fires its
     /// `didSet`, which would otherwise write every *other* preference back at
@@ -143,7 +145,13 @@ final class AppModel: ObservableObject {
         local.resetHistory()
         applyTheme()
         applyListDefaults()
-        Task { await refresh(.local) }
+        // In demo mode the panes are filled with invented listings; reading the
+        // real home directory here would replace them a moment after launch.
+        if Demo.isOn {
+            Demo.install(into: self)
+        } else {
+            Task { await refresh(.local) }
+        }
     }
 
     // MARK: - Connection management
@@ -440,6 +448,12 @@ final class AppModel: ObservableObject {
     }
 
     func refresh(_ side: PaneSide) async {
+        // Nothing in a demo window is real, so a refresh puts the sample back
+        // rather than reading a path that does not exist.
+        if Demo.isOn {
+            Demo.install(into: self)
+            return
+        }
         let pane = pane(side)
         let path = pane.path
         pane.isLoading = true

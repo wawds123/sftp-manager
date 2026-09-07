@@ -10,5 +10,9 @@ if arguments.contains("--selftest") {
 } else if arguments.contains("--snapshot") {
     MainActor.assumeIsolated { Snapshot.run(arguments: arguments) }
 } else {
+    // `--demo` opens the normal window on invented data, for screenshots. It
+    // has to be decided before the model exists, since that is what picks the
+    // scratch connection store.
+    if arguments.contains("--demo") { Demo.isOn = true }
     SFTPManagerApp.main()
 }

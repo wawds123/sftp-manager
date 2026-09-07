@@ -229,7 +229,13 @@ of the source tree: `mv build/SFTPManager.app /Applications/`.
 ./Scripts/make_app.sh --universal   # arm64 + x86_64 in one bundle
 ./Scripts/make_app.sh debug         # debug build, symbols kept
 swift run SFTPManager               # run straight from the build directory
+swift run SFTPManager --demo        # a window full of invented data, for screenshots
 ```
+
+`--demo` opens the ordinary window with invented servers, listings, transfers and shell output. It
+cannot touch the real state — the connection store points at a scratch file and preferences are not
+written — so you can switch themes to frame a shot and still have your settings afterwards. The
+pictures in this README are the same data, drawn offscreen.
 
 A release build is stripped before signing, which roughly halves it (18.8 MB → 9.0 MB per slice).
 `swift build --arch a --arch b` needs Xcode's build system, so `--universal` builds the second

@@ -22,6 +22,7 @@ enum SelfTest {
         activePaneChecks()
         glyphChecks()
         fontChecks()
+        demoChecks()
         localizationChecks()
         dragPayloadChecks()
         preferenceChecks()
@@ -389,6 +390,52 @@ enum SelfTest {
         Fonts.current = FontPreferences(uiFamily: "Menlo", uiSizeDelta: 0,
                                         terminalFamily: nil, terminalSize: 12)
         expect(Fonts.ui(size: 12, weight: .regular)?.familyName, "Menlo", "고른 인터페이스 폰트가 적용됨")
+    }
+
+    private static func demoChecks() {
+        section("데모 모드")
+        MainActor.assumeIsolated {
+            let real = ConnectionStore()
+            let scratch = ConnectionStore.scratch()
+            expectTrue(scratch.fileURL != real.fileURL, "데모 저장소는 실제 파일과 다른 곳을 씀")
+            expectTrue(scratch.fileURL.path.hasPrefix(NSTemporaryDirectory()),
+                       "데모 저장소는 임시 폴더 안에 있음")
+
+            // The real files, as they are right now. Nothing below may change
+            // them — that is the whole point of the mode.
+            let serversBefore = try? Data(contentsOf: real.fileURL)
+            let themeBefore = UserDefaults.standard.string(forKey: PreferenceKey.theme)
+
+            Demo.isOn = true
+            defer { Demo.isOn = false }
+
+            let model = AppModel()
+            expect(model.connections.count, 2, "데모 창은 예시 서버 두 개로 채워짐")
+            expectTrue(model.connections.allSatisfy { $0.host.hasSuffix("example.com") },
+                       "예시 서버의 주소는 example.com")
+            expectTrue(model.status.isConnected, "연결된 것처럼 보임")
+            expectTrue(model.local.visibleItems.count > 0, "로컬 창에 예시 목록이 들어 있음")
+            expectTrue(model.remote.visibleItems.count > 0, "원격 창에 예시 목록이 들어 있음")
+            expectTrue(model.local.error == nil, "없는 경로를 읽은 오류가 남지 않음")
+            expectTrue(!model.transfers.isEmpty, "전송 큐에도 예시가 들어 있음")
+
+            // Everything a person might press while framing a screenshot.
+            model.persistConnections()
+            model.theme = model.theme == .dark ? .light : .dark
+            model.language = model.language == .korean ? .english : .korean
+            model.savePreferences()
+
+            expectTrue((try? Data(contentsOf: real.fileURL)) == serversBefore,
+                       "데모 모드는 실제 서버 목록을 건드리지 않음")
+            expect(UserDefaults.standard.string(forKey: PreferenceKey.theme), themeBefore,
+                   "데모 모드는 설정을 저장하지 않음")
+        }
+        // Back to the real store for anything that runs after this.
+        MainActor.assumeIsolated {
+            expectTrue(!Demo.isOn, "검사 후 데모 모드가 꺼져 있음")
+            expectTrue(AppModel().store.fileURL.lastPathComponent == "connections.json",
+                       "평소에는 실제 저장소를 씀")
+        }
     }
 
     private static func localizationChecks() {

@@ -218,7 +218,12 @@ open build/SFTPManager.app
 ./Scripts/make_app.sh --universal   # arm64 + x86_64 한 번들에
 ./Scripts/make_app.sh debug         # 디버그 빌드, 심볼 유지
 swift run SFTPManager               # 번들 없이 바로 실행 (개발 중)
+swift run SFTPManager --demo        # 예시 데이터로 채운 창 (스크린샷용)
 ```
+
+`--demo` 는 서버·목록·전송·셸 출력이 전부 지어낸 값인 창을 엽니다. 실제 서버 목록과 설정은 건드리지
+않으므로(연결 저장소가 임시 파일로 바뀌고 설정은 저장되지 않습니다), 테마를 바꿔 가며 마음대로 찍어도
+원래 설정 그대로입니다. 이 README의 그림은 같은 데이터를 오프스크린으로 그린 것입니다.
 
 릴리즈 빌드는 서명 전에 strip 해서 크기가 대략 절반이 됩니다(슬라이스당 18.8 MB → 9.0 MB).
 `swift build --arch a --arch b` 는 Xcode의 빌드 시스템을 요구하므로, `--universal` 은 두 번째

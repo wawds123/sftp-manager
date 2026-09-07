@@ -104,6 +104,18 @@ final class ConnectionStore {
         url = support.appendingPathComponent("connections.json")
     }
 
+    private init(url: URL) {
+        self.url = url
+    }
+
+    /// A store that writes to a throwaway file, for `--demo`. The invented
+    /// servers must not reach the real list — not even if someone presses `+`
+    /// in the sidebar while setting a screenshot up.
+    static func scratch() -> ConnectionStore {
+        ConnectionStore(url: URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("SFTPManager-demo-connections.json"))
+    }
+
     /// Where the profiles live, surfaced in Settings.
     var fileURL: URL { url }
 

@@ -370,7 +370,7 @@ private func redrawLayer(of view: NSView, in contentView: NSView, context: CGCon
 /// Everything here is invented. The snapshot mode otherwise renders the real
 /// home directory and the real saved servers, which is fine while reviewing a
 /// layout and wrong for an image that goes into the README.
-private enum SampleWorkspace {
+enum SampleWorkspace {
     private static func item(_ path: String, _ name: String, _ kind: FileItem.Kind,
                              _ size: UInt64, _ daysAgo: Double, _ owner: String,
                              _ mode: UInt32) -> FileItem {
@@ -461,7 +461,7 @@ private enum SampleWorkspace {
     }
 }
 
-private enum SampleTransfers {
+enum SampleTransfers {
     /// Stand-in shell output, including colour, so the panel can be reviewed
     /// without a live server.
     static let shellOutput = """

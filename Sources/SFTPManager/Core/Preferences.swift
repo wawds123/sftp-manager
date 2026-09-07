@@ -110,7 +110,9 @@ extension AppModel {
     }
 
     func savePreferences() {
-        guard !isLoadingPreferences else { return }
+        // A demo window is for photographs: switching the theme or the language
+        // to set one up must not rewrite the real settings.
+        guard !isLoadingPreferences, !Demo.isOn else { return }
         let defaults = UserDefaults.standard
         defaults.set(language.rawValue, forKey: PreferenceKey.language)
         defaults.set(theme.rawValue, forKey: PreferenceKey.theme)
