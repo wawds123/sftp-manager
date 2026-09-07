@@ -9,6 +9,7 @@ This Mac on the left, your server on the right. Move files between the two.
 
 ![macOS](https://img.shields.io/badge/macOS-15%2B-000000?logo=apple&logoColor=white)
 ![Swift](https://img.shields.io/badge/Swift-6.x-F05138?logo=swift&logoColor=white)
+![Version](https://img.shields.io/badge/version-0.0.1%20pre--release-orange)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 ![Self-test](https://img.shields.io/badge/self--test-262%20passing-brightgreen)
 ![UI](https://img.shields.io/badge/UI-English%20·%20한국어-8A2BE2)
@@ -201,10 +202,9 @@ those two.
 
 ## 🧰 Building it yourself
 
-**Building from source is the intended way to install this.** There is a
-[release build](https://github.com/wawds123/sftp-manager/releases) for convenience, but it is ad-hoc
-signed rather than notarized, so macOS quarantines it on download and you have to clear that by hand.
-Building takes one command and produces a bundle macOS is happy with.
+**Building from source is the only way to install this.** At 0.0.1 there is no prebuilt download.
+An un-notarized binary is quarantined by macOS the moment you download it and has to be cleared by
+hand, whereas building it takes one command and produces a bundle macOS is happy with.
 
 ### What you need
 

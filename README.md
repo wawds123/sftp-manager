@@ -9,6 +9,7 @@
 
 ![macOS](https://img.shields.io/badge/macOS-15%2B-000000?logo=apple&logoColor=white)
 ![Swift](https://img.shields.io/badge/Swift-6.x-F05138?logo=swift&logoColor=white)
+![Version](https://img.shields.io/badge/version-0.0.1%20pre--release-orange)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 ![Self-test](https://img.shields.io/badge/self--test-262%20passing-brightgreen)
 ![UI](https://img.shields.io/badge/UI-한국어%20·%20English-8A2BE2)
@@ -192,10 +193,9 @@
 
 ## 🧰 직접 빌드하기
 
-**소스에서 빌드하는 것이 원래 설치 방법입니다.** 편의를 위해
-[릴리즈 빌드](https://github.com/wawds123/sftp-manager/releases)를 올려 두긴 했지만, 공증이 아닌 ad-hoc
-서명이라 내려받으면 macOS가 격리해서 손으로 풀어줘야 합니다. 직접 빌드하면 명령 한 줄이면 되고
-macOS도 군말 없이 실행합니다.
+**설치 방법은 소스 빌드 하나뿐입니다.** 아직 0.0.1이라 미리 빌드한 파일은 올려 두지 않았습니다.
+공증받지 않은 바이너리는 내려받는 순간 macOS가 격리해 손으로 풀어줘야 하지만, 직접 빌드하면
+명령 한 줄로 끝나고 macOS도 군말 없이 실행합니다.
 
 ### 준비물
 

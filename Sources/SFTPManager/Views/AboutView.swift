@@ -12,7 +12,7 @@ struct AboutView: View {
     static let authorEmail = "wawds123@gmail.com"
 
     static var version: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.1"
     }
 
     private var icon: NSImage? {
