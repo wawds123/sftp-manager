@@ -53,9 +53,9 @@ struct FilePaneView: View {
         .overlay {
             // Doubles as the drop target ring and the "this pane has focus"
             // marker, so the two never fight over the same border.
-            RoundedRectangle(cornerRadius: 4)
-                .strokeBorder(Color.accentColor.opacity(isDropTargeted ? 1 : 0.5),
-                              lineWidth: isDropTargeted ? 3 : (isActive ? 2 : 0))
+            RoundedRectangle(cornerRadius: Style.paneCorner)
+                .strokeBorder(Color.accentColor.opacity(isDropTargeted ? 1 : 0.45),
+                              lineWidth: isDropTargeted ? 3 : (isActive ? 1.5 : 0))
                 .allowsHitTesting(false)
         }
         // Clicking anywhere in the pane makes it the target of ⌘R. Simultaneous
@@ -72,9 +72,11 @@ struct FilePaneView: View {
     private var header: some View {
         VStack(spacing: 6) {
             HStack(spacing: 6) {
-                Label(side.title, systemImage: side == .local ? "desktopcomputer" : "server.rack")
-                    .font(.headline)
-                    .labelStyle(.titleAndIcon)
+                Image(systemName: side == .local ? "desktopcomputer" : "server.rack")
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.tint)
+                Text(side.title)
+                    .font(Style.title)
 
                 Spacer()
 
@@ -100,7 +102,7 @@ struct FilePaneView: View {
 
                 TextField(L.path, text: $pathDraft)
                     .textFieldStyle(.roundedBorder)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(.callout, design: .monospaced))
                     .onSubmit {
                         model.navigate(side, to: pathDraft)
                     }
@@ -148,9 +150,12 @@ struct FilePaneView: View {
                 }
             }
             .font(.callout)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.primary.opacity(0.05), in: Capsule())
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
     }
 
     private var transferButton: some View {
@@ -232,7 +237,8 @@ struct FilePaneView: View {
     private func unavailable(_ title: String, _ symbol: String, _ message: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: symbol)
-                .font(.system(size: 32, weight: .light))
+                .font(.system(size: 30, weight: .light))
+                .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.tertiary)
             Text(title)
                 .font(.headline)
@@ -334,9 +340,9 @@ struct FilePaneView: View {
                 Text(name).lineLimit(1)
             }
         }
-        .font(.caption)
+        .font(Style.footnote)
         .foregroundStyle(.secondary)
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 12)
         .padding(.vertical, 5)
     }
 
@@ -433,16 +439,20 @@ private struct ColumnHeader: View {
     var body: some View {
         HStack(spacing: 0) {
             ColumnHeaderButton(pane: pane, key: .name, title: L.columnName, width: nil)
-            ColumnHeaderButton(pane: pane, key: .size, title: L.columnSize, width: 78)
-            ColumnHeaderButton(pane: pane, key: .modified, title: L.columnModified, width: 130)
-            ColumnHeaderButton(pane: pane, key: .owner, title: L.columnOwner, width: 88)
-            ColumnHeaderButton(pane: pane, key: .permissions, title: L.columnPermissions, width: 84)
+            ColumnHeaderButton(pane: pane, key: .size, title: L.columnSize,
+                               width: Style.sizeColumn, alignment: .trailing)
+            ColumnHeaderButton(pane: pane, key: .modified, title: L.columnModified,
+                               width: Style.dateColumn)
+            ColumnHeaderButton(pane: pane, key: .owner, title: L.columnOwner,
+                               width: Style.ownerColumn)
+            ColumnHeaderButton(pane: pane, key: .permissions, title: L.columnPermissions,
+                               width: Style.permissionColumn)
         }
-        .font(.caption.weight(.medium))
+        .font(Style.columnHeader)
         // Matches the insets `.listStyle(.inset(alternatesRowBackgrounds:))`
         // applies to the rows, so each heading sits over its own column.
-        .padding(.leading, 17)
-        .padding(.trailing, 32)
+        .padding(.leading, Style.listInsetLeading)
+        .padding(.trailing, Style.listInsetTrailing)
         .padding(.vertical, 2)
         .background(Color(nsColor: .windowBackgroundColor))
     }
@@ -459,6 +469,8 @@ private struct ColumnHeaderButton: View {
     let title: String
     /// Nil means the column takes the remaining width.
     let width: CGFloat?
+    /// Trailing for the one column of numbers; leading for everything else.
+    var alignment: HorizontalAlignment = .leading
 
     @State private var isHovering = false
 
@@ -467,13 +479,24 @@ private struct ColumnHeaderButton: View {
     var body: some View {
         Button(action: toggle) {
             HStack(spacing: 2) {
-                Text(title)
-                arrow
-                Spacer(minLength: 0)
+                // In a right-aligned column the arrow goes on the far side of
+                // the title, so the title itself ends where the values do.
+                if alignment == .trailing {
+                    Spacer(minLength: 0)
+                    arrow
+                    Text(title)
+                } else {
+                    Text(title)
+                    arrow
+                    Spacer(minLength: 0)
+                }
             }
             .foregroundStyle(isActive ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
             .padding(.vertical, 3)
-            .frame(width: width, alignment: .leading)
+            // The gap sits inside the column, so the heading ends exactly where
+            // the value under it does.
+            .padding(.trailing, alignment == .trailing ? Style.columnGap : 0)
+            .frame(width: width, alignment: alignment == .trailing ? .trailing : .leading)
             .frame(maxWidth: width == nil ? .infinity : nil, alignment: .leading)
             .contentShape(Rectangle())
             .background(
@@ -517,38 +540,44 @@ private struct FileRow: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            HStack(spacing: 6) {
+            HStack(spacing: 7) {
                 Image(systemName: glyph.symbol)
+                    .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(glyph.tint)
-                    .frame(width: 16)
+                    .frame(width: 17)
                 Text(item.name)
+                    // A folder is a destination, not a value: a little more
+                    // weight is what separates the two at a glance.
+                    .font(item.isDirectory ? Style.rowName.weight(.medium) : Style.rowName)
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .opacity(item.isHidden ? 0.55 : 1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
+            // Sizes are a column of numbers, so they line up on their last digit.
             Text(item.isDirectory ? "—" : ByteFormat.string(item.size))
-                .frame(width: 78, alignment: .leading)
+                .padding(.trailing, Style.columnGap)
+                .frame(width: Style.sizeColumn, alignment: .trailing)
                 .foregroundStyle(.secondary)
 
             Text(item.modified.map { Self.dateFormatter.string(from: $0) } ?? "—")
-                .frame(width: 130, alignment: .leading)
+                .frame(width: Style.dateColumn, alignment: .leading)
                 .foregroundStyle(.secondary)
 
             Text(item.owner ?? "—")
-                .frame(width: 88, alignment: .leading)
+                .frame(width: Style.ownerColumn, alignment: .leading)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .foregroundStyle(.secondary)
 
             Text(item.permissionString)
-                .font(.system(.caption, design: .monospaced))
-                .frame(width: 84, alignment: .leading)
+                .font(Style.rowMono)
+                .frame(width: Style.permissionColumn, alignment: .leading)
                 .foregroundStyle(.tertiary)
         }
-        .font(.callout)
-        .padding(.vertical, 1)
+        .font(Style.rowMeta)
+        .padding(.vertical, 2)
     }
 }
 

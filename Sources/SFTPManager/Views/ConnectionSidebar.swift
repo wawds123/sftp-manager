@@ -107,17 +107,21 @@ private struct ConnectionRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: isActive ? "bolt.horizontal.circle.fill" : "server.rack")
+                .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(isActive ? Color.green : Color.secondary)
+                .frame(width: 18)
             VStack(alignment: .leading, spacing: 1) {
                 Text(connection.displayName)
+                    .font(Style.itemName)
                     .lineLimit(1)
                 Text(connection.subtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .truncationMode(.middle)
             }
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 3)
     }
 }

@@ -154,9 +154,16 @@ struct StatusPill: View {
             } else {
                 Circle().fill(color).frame(width: 8, height: 8)
             }
-            Text(text).font(.callout)
+            Text(text)
+                .font(.callout.weight(.medium))
+                .lineLimit(1)
         }
-        .padding(.horizontal, 4)
+        // An actual pill: in a unified toolbar the dot and the name otherwise
+        // float loose among the buttons.
+        .padding(.horizontal, 10)
+        .padding(.vertical, 3)
+        .background(Color.primary.opacity(0.06), in: Capsule())
+        .overlay(Capsule().stroke(Color.primary.opacity(0.07)))
     }
 }
 

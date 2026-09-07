@@ -65,6 +65,10 @@ private struct TransferRow: View {
         }
     }
 
+    private var percent: String {
+        "\(Int((item.fraction * 100).rounded()))%"
+    }
+
     private var stateIcon: String {
         switch item.state {
         case .completed: return "checkmark.circle.fill"
@@ -78,13 +82,17 @@ private struct TransferRow: View {
         HStack(spacing: 10) {
             Image(systemName: stateIcon)
                 .foregroundStyle(stateColor)
+                // A fixed slot, so a checkmark and a warning triangle leave the
+                // names under them at the same x.
+                .frame(width: 16)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.displayName)
+                    .font(Style.itemName)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Text(stateText)
-                    .font(.caption)
+                    .font(Style.footnote)
                     .foregroundStyle(item.state == .running ? .secondary : stateColor.opacity(0.9))
                     .lineLimit(1)
             }
@@ -92,13 +100,21 @@ private struct TransferRow: View {
             Spacer(minLength: 12)
 
             if item.state == .running {
-                ProgressView(value: item.fraction)
-                    .frame(width: 120)
+                HStack(spacing: 8) {
+                    ProgressView(value: item.fraction)
+                    // The bar alone makes people estimate; the number is what
+                    // they were estimating.
+                    Text(percent)
+                        .font(Style.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 34, alignment: .trailing)
+                }
+                .frame(width: 140)
             } else {
                 Text(item.direction.label)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
-                    .frame(width: 120, alignment: .trailing)
+                    .frame(width: 140, alignment: .trailing)
             }
         }
     }

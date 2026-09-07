@@ -79,7 +79,7 @@ struct BottomPanelView: View {
             ProgressView(value: model.overallProgress)
                 .frame(width: 140)
             Text(L.remainingItems(model.activeTransferCount))
-                .font(.caption)
+                .font(Style.footnote)
                 .foregroundStyle(.secondary)
         }
     }
@@ -116,7 +116,8 @@ private struct TerminalStatus: View {
             // Yields space before anything else, so a deep path truncates
             // instead of shoving the buttons around.
             Text(shell.title)
-                .font(.caption)
+                // It is a path, so it gets the font paths get.
+                .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.head)

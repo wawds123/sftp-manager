@@ -78,9 +78,11 @@ struct ConflictSheet: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title).font(.caption).foregroundStyle(.secondary)
             if let item {
-                Text(ByteFormat.string(item.size)).font(.callout)
+                // The two sides are here to be compared, so their figures line
+                // up digit for digit.
+                Text(ByteFormat.string(item.size)).font(Style.rowMeta)
                 Text(item.modified.map { Self.dateFormatter.string(from: $0) } ?? L.modifiedUnknown)
-                    .font(.caption)
+                    .font(Style.footnote)
                     .foregroundStyle(.secondary)
             } else {
                 Text(L.unknown).font(.callout).foregroundStyle(.tertiary)
