@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="docs/icon.png" width="120" alt="SFTP Manager">
-
 # SFTP Manager
 
 **macOS 네이티브 SFTP 파일 전송기**
@@ -14,8 +12,6 @@
 ![UI](https://img.shields.io/badge/UI-한국어%20·%20English-8A2BE2)
 
 [English](README.en.md) · **한국어**
-
-<img src="docs/screenshot.png" width="880" alt="두 창 파일 브라우저와 전송 큐">
 
 </div>
 
@@ -103,8 +99,6 @@
 **스스로 알려준** 위치(OSC 7, 없으면 창 제목의 `user@host:path`)만 씁니다 — 위치를 알아내려고
 사용자의 터미널에 명령을 몰래 입력하지 않습니다. `exit` 로 끝내도 화면은 남고 `다시 열기` 로
 새로 시작합니다.
-
-<img src="docs/terminal.png" width="880" alt="아래쪽 패널에 열린 원격 셸">
 
 ### 🔐 보안
 
@@ -253,9 +247,8 @@ swift run SFTPManager --snapshot /tmp/demo.png --demo
 # 도움말·정보 창을 원하는 언어와 주제로
 swift run SFTPManager --snapshot /tmp/help.png --view help --lang ko --topic terminal
 
-# 이 README의 스크린샷 — 창 프레임(제목 표시줄·툴바)까지 그리고 레티나 2배로 저장
-swift run SFTPManager --snapshot docs/screenshot.png --demo --chrome --scale 2 --lang ko
-swift run SFTPManager --snapshot docs/terminal.png --demo --chrome --scale 2 --lang ko --view terminal
+# 창 프레임(제목 표시줄·툴바)까지, 레티나 2배로
+swift run SFTPManager --snapshot /tmp/window.png --demo --chrome --scale 2
 ```
 
 고정 크기 컨테이너에 그린 뒤 잘라내므로 실제 창과 같은 조건입니다 — 넘치는 레이아웃은 넘친 채로 보입니다.
@@ -300,5 +293,3 @@ swift run SFTPManager --snapshot docs/terminal.png --demo --chrome --scale 2 --l
 ## 📄 라이선스
 
 MIT — [LICENSE](LICENSE) 참고.
-
-**jackson** &lt;wawds123@gmail.com&gt; · 앱에서는 `SFTP Manager › SFTP Manager 정보` 또는 `설정 › 정보`.

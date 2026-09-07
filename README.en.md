@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="docs/icon.png" width="120" alt="SFTP Manager">
-
 # SFTP Manager
 
 **A native SFTP file transfer app for macOS**
@@ -14,8 +12,6 @@ This Mac on the left, your server on the right. Move files between the two.
 ![UI](https://img.shields.io/badge/UI-English%20·%20한국어-8A2BE2)
 
 **English** · [한국어](README.md)
-
-<img src="docs/screenshot-en.png" width="880" alt="The two-pane browser and the transfer queue">
 
 </div>
 
@@ -108,8 +104,6 @@ finishes and the output falls quiet. `Move Terminal to Pane` / `Move Pane to Ter
 the second one only uses a location the shell **volunteered** (an OSC 7 report, or failing that the
 `user@host:path` in its window title) — no command is ever typed into your terminal to find out.
 Typing `exit` ends the shell but leaves the screen in place, and `Reopen` starts a new one.
-
-<img src="docs/terminal-en.png" width="880" alt="A remote shell open in the bottom panel">
 
 ### 🔐 Security
 
@@ -264,9 +258,8 @@ swift run SFTPManager --snapshot /tmp/demo.png --demo
 # the help and about windows, in a chosen language and topic
 swift run SFTPManager --snapshot /tmp/help.png --view help --lang en --topic terminal
 
-# the screenshots in this README — the window frame (title bar, toolbar) at 2x
-swift run SFTPManager --snapshot docs/screenshot-en.png --demo --chrome --scale 2 --lang en
-swift run SFTPManager --snapshot docs/terminal-en.png --demo --chrome --scale 2 --lang en --view terminal
+# the window frame (title bar, toolbar) included, at 2x
+swift run SFTPManager --snapshot /tmp/window.png --demo --chrome --scale 2
 ```
 
 Snapshots are drawn into a fixed-size container and clipped — the same condition as a real window, so
@@ -314,6 +307,3 @@ home directory path or a saved server.
 ## 📄 License
 
 MIT — see [LICENSE](LICENSE).
-
-**jackson** &lt;wawds123@gmail.com&gt; · in the app: `SFTP Manager › About SFTP Manager`, or
-`Settings › About`.
