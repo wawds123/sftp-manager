@@ -15,6 +15,13 @@ This Mac on the left, your server on the right. Move files between the two.
 
 </div>
 
+| Light | Dark |
+|:--:|:--:|
+| <img src="docs/screenshot-light.png" alt="The two-pane file browser"> | <img src="docs/screenshot-dark.png" alt="The two-pane file browser in the dark theme"> |
+| <img src="docs/terminal-light.png" alt="A remote shell open in the bottom panel"> | <img src="docs/terminal-dark.png" alt="A remote shell open in the bottom panel, dark theme"> |
+
+<div align="center"><sup>Top: the two panes and the transfer queue · Bottom: a terminal on that same connection. The theme is a setting — system, light or dark.</sup></div>
+
 ---
 
 ## Contents
