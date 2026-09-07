@@ -26,11 +26,9 @@ This Mac on the left, your server on the right. Move files between the two.
 
 ## Contents
 
-| | |
-|---|---|
-| [✨ Features](#features) | [⌨️ Shortcuts](#shortcuts) |
-| [🧱 Tech stack](#stack) | [🧰 Development and build](#build) |
-| [⚠️ Installing and running it on macOS](#macos) | [📄 License](#license) |
+[✨ Features](#features) · [⌨️ Shortcuts](#shortcuts) · [🧱 Tech stack](#stack) ·
+[🧰 Development and build](#build) · [⚠️ Installing and running it on macOS](#macos) ·
+[📄 License](#license)
 
 ---
 
@@ -146,14 +144,19 @@ Typing `exit` ends the shell but leaves the screen in place, and `Reopen` starts
 
 ## ⌨️ Shortcuts
 
-| | | | |
-|---|---|---|---|
-| `⌘N` | New connection | `⌘R` | Refresh the clicked pane |
-| `⌘,` | Settings | `⇧⌘R` | Refresh both panes |
-| `⌘?` | Help | `⌘↑` | Local parent folder |
-| `⌘→` | Upload | `⇧⌘↑` | Remote parent folder |
-| `⌘←` | Download | `⌥⌘T` | Show/hide the transfer list |
-| | | `⌥⌘S` | Show/hide the terminal |
+| Key | Action |
+|---|---|
+| `⌘N` | New connection |
+| `⌘,` | Settings |
+| `⌘?` | Help |
+| `⌘→` | Upload |
+| `⌘←` | Download |
+| `⌘R` | Refresh the clicked pane |
+| `⇧⌘R` | Refresh both panes |
+| `⌘↑` | Local parent folder |
+| `⇧⌘↑` | Remote parent folder |
+| `⌥⌘T` | Show/hide the transfer list |
+| `⌥⌘S` | Show/hide the terminal |
 
 `⌘R` refreshes **only the pane you last clicked** — the highlighted border shows which one.
 
@@ -163,7 +166,7 @@ Typing `exit` ends the shell but leaves the screen in place, and `Reopen` starts
 
 ## 🧱 Tech stack
 
-| | |
+| Area | What |
 |---|---|
 | Language · UI | Swift 6 (language mode 5) · SwiftUI, with `NSViewRepresentable` for AppKit |
 | Concurrency | actor-backed sessions, a `@MainActor` UI, progress callbacks coalesced into 100 ms buckets |
@@ -195,7 +198,7 @@ by those two.
 
 ### What you need
 
-| | |
+| Tool | Requirement |
 |---|---|
 | macOS | 15 or later — the PTY API the remote shell uses starts there |
 | Swift | 6.x, which ships with the Command Line Tools. **Xcode is not required** |
