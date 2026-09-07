@@ -439,7 +439,11 @@ enum SelfTest {
         expect(glyph(".zshrc").symbol, "terminal.fill", "점으로 시작하는 설정 파일")
         expect(glyph("README.md").symbol, "book.fill", "확장자가 이름보다 우선")
         expect(glyph("mystery.qqq").symbol, FileGlyph.file.symbol, "모르는 확장자는 기본 아이콘")
-        expect(glyph("Downloads", .directory).symbol, "arrow.down.circle.fill", "알려진 폴더")
+        // A directory keeps the folder glyph even when its name matches one of
+        // the file tables — the icon says "you can go in here", nothing else.
+        expect(glyph("Downloads", .directory).symbol, FileGlyph.folder.symbol, "이름이 알려져도 폴더는 폴더")
+        expect(glyph(".git", .directory).symbol, FileGlyph.folder.symbol, "점으로 시작하는 폴더도 폴더")
+        expect(glyph("server.log", .directory).symbol, FileGlyph.folder.symbol, "확장자가 붙은 폴더도 폴더")
         expect(glyph("whatever", .directory).symbol, FileGlyph.folder.symbol, "그 밖의 폴더")
         expect(glyph("link", .symlink).symbol, FileGlyph.symlink.symbol, "심볼릭 링크")
 

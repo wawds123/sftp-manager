@@ -18,29 +18,6 @@ enum FileGlyph {
     static let symlink = Glyph(symbol: "arrow.turn.up.right", tint: .teal)
     static let unknown = Glyph(symbol: "questionmark.square", tint: .secondary)
 
-    /// Folders worth recognising at a glance — a home directory is mostly these.
-    static let folders: [String: Glyph] = [
-        "desktop": Glyph(symbol: "menubar.dock.rectangle", tint: .accentColor),
-        "documents": Glyph(symbol: "doc.text.fill", tint: .accentColor),
-        "downloads": Glyph(symbol: "arrow.down.circle.fill", tint: .accentColor),
-        "pictures": Glyph(symbol: "photo.fill", tint: .orange),
-        "movies": Glyph(symbol: "film.fill", tint: .purple),
-        "music": Glyph(symbol: "music.note", tint: .pink),
-        "public": Glyph(symbol: "person.2.fill", tint: .accentColor),
-        "applications": Glyph(symbol: "square.grid.2x2.fill", tint: .accentColor),
-        "library": Glyph(symbol: "building.columns.fill", tint: .accentColor),
-        "sites": Glyph(symbol: "globe", tint: .accentColor),
-        ".git": Glyph(symbol: "arrow.triangle.branch", tint: .orange),
-        ".ssh": Glyph(symbol: "key.fill", tint: .yellow),
-        "node_modules": Glyph(symbol: "shippingbox.fill", tint: .brown),
-        "bin": Glyph(symbol: "terminal.fill", tint: .gray),
-        "log": Glyph(symbol: "list.bullet.rectangle.fill", tint: .gray),
-        "logs": Glyph(symbol: "list.bullet.rectangle.fill", tint: .gray),
-        "tmp": Glyph(symbol: "clock.fill", tint: .gray),
-        "backup": Glyph(symbol: "clock.arrow.circlepath", tint: .gray),
-        "trash": Glyph(symbol: "trash.fill", tint: .gray),
-    ]
-
     /// Extension-less names that still say exactly what they are.
     static let names: [String: Glyph] = [
         "makefile": Glyph(symbol: "hammer.fill", tint: .brown),
@@ -96,15 +73,19 @@ enum FileGlyph {
     }()
 
     static func glyph(for item: FileItem) -> Glyph {
-        let lowercased = item.name.lowercased()
         switch item.kind {
         case .directory:
-            return folders[lowercased] ?? folder
+            // A folder is drawn as a folder, whatever it is called. Naming one
+            // `music` or `log` does not make it less of a place to go into, and
+            // a row of look-alike glyphs is harder to scan than one shape that
+            // always means "you can open this".
+            return folder
         case .symlink:
             return symlink
         case .other:
             return unknown
         case .file:
+            let lowercased = item.name.lowercased()
             if let byExtension = extensions[item.ext] { return byExtension }
             // "Makefile", "README.md" already matched above; this catches the
             // extension-less ones and dotfiles, where `ext` is empty.
@@ -120,7 +101,6 @@ enum FileGlyph {
     /// Every symbol the table can produce, for the availability check.
     static var allSymbols: [String] {
         var symbols = [folder, file, symlink, unknown].map(\.symbol)
-        symbols += folders.values.map(\.symbol)
         symbols += names.values.map(\.symbol)
         symbols += extensions.values.map(\.symbol)
         return Array(Set(symbols)).sorted()
