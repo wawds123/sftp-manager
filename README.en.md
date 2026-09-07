@@ -15,6 +15,8 @@ This Mac on the left, your server on the right. Move files between the two.
 
 **English** · [한국어](README.md)
 
+<img src="docs/screenshot-en.png" width="880" alt="The two-pane browser and the transfer queue">
+
 </div>
 
 ---
@@ -106,6 +108,8 @@ finishes and the output falls quiet. `Move Terminal to Pane` / `Move Pane to Ter
 the second one only uses a location the shell **volunteered** (an OSC 7 report, or failing that the
 `user@host:path` in its window title) — no command is ever typed into your terminal to find out.
 Typing `exit` ends the shell but leaves the screen in place, and `Reopen` starts a new one.
+
+<img src="docs/terminal-en.png" width="880" alt="A remote shell open in the bottom panel">
 
 ### 🔐 Security
 
@@ -259,10 +263,16 @@ swift run SFTPManager --snapshot /tmp/demo.png --demo
 
 # the help and about windows, in a chosen language and topic
 swift run SFTPManager --snapshot /tmp/help.png --view help --lang en --topic terminal
+
+# the screenshots in this README — the window frame (title bar, toolbar) at 2x
+swift run SFTPManager --snapshot docs/screenshot-en.png --demo --chrome --scale 2 --lang en
+swift run SFTPManager --snapshot docs/terminal-en.png --demo --chrome --scale 2 --lang en --view terminal
 ```
 
 Snapshots are drawn into a fixed-size container and clipped — the same condition as a real window, so
-layout that overflows shows up as overflow.
+layout that overflows shows up as overflow. `--chrome` trades that fixed-size check for the real window
+frame, so it is for screenshots rather than for layout checks. Nothing drawn with `--demo` contains a
+home directory path or a saved server.
 
 </details>
 

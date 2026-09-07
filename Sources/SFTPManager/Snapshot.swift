@@ -9,9 +9,12 @@ import AppKit
 ///
 /// Usage: SFTPManager --snapshot /path/to/out.png [--seconds 2] [--view app|sidebar]
 ///
-/// `--view sidebar` renders the connection list on its own; NavigationSplitView's
-/// sidebar sits in a vibrancy layer that offscreen rendering leaves blank, so it
-/// has to be checked outside the split view.
+/// `--view sidebar` renders the connection list on its own, which is the smaller
+/// target when only that column is under review. The whole-window capture draws
+/// it too, by redrawing the glass container the parent layer pass skips.
+///
+/// `--chrome --scale 2` is the combination the README screenshots use: the real
+/// window frame, drawn at twice the point size.
 enum Snapshot {
     /// Mirrors the modifiers `SFTPManagerApp` applies, so the snapshot lays out
     /// the same way the shipping window does.
@@ -44,6 +47,11 @@ enum Snapshot {
             if parts.count == 2, let w = Double(parts[0]), let h = Double(parts[1]) {
                 width = w; height = h
             }
+        }
+        // Screenshots for the README are drawn at 2x; verification runs at 1x.
+        var scale = 1.0
+        if let c = arguments.firstIndex(of: "--scale"), c + 1 < arguments.count {
+            scale = Double(arguments[c + 1]) ?? 1
         }
         var view = "app"
         if let v = arguments.firstIndex(of: "--view"), v + 1 < arguments.count {
@@ -149,14 +157,25 @@ enum Snapshot {
         hosting.autoresizingMask = [.width, .height]
         container.addSubview(hosting)
 
+        // `--chrome` renders the real window frame — title bar, toolbar and the
+        // sidebar's glass container — which is what a screenshot should show.
+        // It gives up the fixed-size clipping below, so layout checks stay on
+        // the default path where an overflowing view is visibly clipped.
+        let chrome = arguments.contains("--chrome")
         let window = NSWindow(
             contentRect: container.frame,
-            styleMask: [.titled, .closable, .fullSizeContentView],
+            styleMask: chrome ? [.titled, .closable, .miniaturizable, .resizable]
+                              : [.titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.title = "SFTP Manager"
-        window.contentView = container
+        if chrome {
+            window.contentViewController = NSHostingController(rootView: appRoot(model))
+            window.toolbarStyle = .unified
+        } else {
+            window.contentView = container
+        }
         window.setContentSize(size)
         window.orderFrontRegardless()
 
@@ -177,8 +196,12 @@ enum Snapshot {
             RunLoop.main.run(until: Date().addingTimeInterval(0.4))
         }
 
-        guard let contentView = window.contentView,
-              let rep = contentView.bitmapImageRepForCachingDisplay(in: contentView.bounds) else {
+        // The hosting controller sizes the window to its own fitting size;
+        // asking again after layout settles gets back to the requested size.
+        if chrome { window.setContentSize(size); RunLoop.main.run(until: Date().addingTimeInterval(0.3)) }
+
+        guard let contentView = chrome ? (window.contentView?.superview ?? window.contentView) : window.contentView,
+              let rep = bitmap(size: contentView.bounds.size, scale: scale) else {
             print("스냅샷 생성 실패")
             exit(1)
         }
@@ -198,8 +221,14 @@ enum Snapshot {
             // `layer.render` draws SwiftTerm's text with a left offset and puts
             // the caret somewhere else entirely, so the terminal is re-drawn on
             // top through the view's own (accurate) path.
+            // macOS 26 puts the NavigationSplitView sidebar inside a concentric
+            // glass container, whose content the parent layer pass skips — the
+            // band comes out empty. Render that subtree's layer on its own.
+            for holder in views(in: contentView, classNameContains: "ContentHolderView") {
+                redrawLayer(of: holder, in: contentView, context: context.cgContext)
+            }
             if let shell = model.shell {
-                overlay(view: shell.view, in: contentView, context: context.cgContext)
+                overlay(view: shell.view, in: contentView, context: context.cgContext, scale: scale)
             }
         } else {
             contentView.cacheDisplay(in: contentView.bounds, to: rep)
@@ -223,9 +252,11 @@ enum Snapshot {
 /// Redraws one subview into the capture through `cacheDisplay`, for views the
 /// layer path renders wrong.
 @MainActor
-private func overlay(view: NSView, in contentView: NSView, context: CGContext) {
+private func overlay(view: NSView, in contentView: NSView, context: CGContext, scale: Double) {
     guard view.superview != nil,
-          let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+          // Cached at the capture's own scale, or the redraw lands soft inside
+          // an otherwise sharp 2x screenshot.
+          let rep = bitmap(size: view.bounds.size, scale: scale) else { return }
     view.cacheDisplay(in: view.bounds, to: rep)
     guard let image = rep.cgImage else { return }
     var rect = contentView.convert(view.bounds, from: view)
@@ -241,6 +272,41 @@ private func overlay(view: NSView, in contentView: NSView, context: CGContext) {
         context.fill(rect)
     }
     context.draw(image, in: rect)
+}
+
+/// A bitmap `scale` times the point size. `rep.size` stays in points, so the
+/// graphics context built from it scales every drawing operation for free.
+private func bitmap(size: NSSize, scale: Double) -> NSBitmapImageRep? {
+    let rep = NSBitmapImageRep(
+        bitmapDataPlanes: nil,
+        pixelsWide: Int(size.width * scale), pixelsHigh: Int(size.height * scale),
+        bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+        colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
+    )
+    rep?.size = size
+    return rep
+}
+
+/// Views under `root` whose class name contains `needle`, outermost first.
+@MainActor
+private func views(in root: NSView, classNameContains needle: String) -> [NSView] {
+    if String(describing: type(of: root)).contains(needle) { return [root] }
+    return root.subviews.flatMap { views(in: $0, classNameContains: needle) }
+}
+
+/// Draws one subtree's layer into the capture, positioned where it sits in the
+/// window — for content the whole-window layer pass leaves out.
+@MainActor
+private func redrawLayer(of view: NSView, in contentView: NSView, context: CGContext) {
+    guard let layer = view.layer else { return }
+    var rect = contentView.convert(view.bounds, from: view)
+    if contentView.isFlipped {
+        rect.origin.y = contentView.bounds.height - rect.maxY
+    }
+    context.saveGState()
+    context.translateBy(x: rect.minX, y: rect.minY)
+    layer.render(in: context)
+    context.restoreGState()
 }
 
 /// Sample rows for `--snapshot --view transfers`, so the queue's layout can be
@@ -309,9 +375,13 @@ private enum SampleWorkspace {
         model.local.isLoading = false
         model.remote.isLoading = false
 
-        model.showBottomPanel = true
-        model.bottomTab = .transfers
-        model.transfers = demoTransfers()
+        // `--view terminal` has already put a shell in the bottom panel; this
+        // runs again after the layout settles and must not take that back.
+        if model.shell == nil {
+            model.showBottomPanel = true
+            model.bottomTab = .transfers
+            model.transfers = demoTransfers()
+        }
     }
 
     /// The queue the screenshot shows: one of each state, plausible names.

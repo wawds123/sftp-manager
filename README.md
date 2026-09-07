@@ -15,6 +15,8 @@
 
 [English](README.en.md) · **한국어**
 
+<img src="docs/screenshot.png" width="880" alt="두 창 파일 브라우저와 전송 큐">
+
 </div>
 
 ---
@@ -101,6 +103,8 @@
 **스스로 알려준** 위치(OSC 7, 없으면 창 제목의 `user@host:path`)만 씁니다 — 위치를 알아내려고
 사용자의 터미널에 명령을 몰래 입력하지 않습니다. `exit` 로 끝내도 화면은 남고 `다시 열기` 로
 새로 시작합니다.
+
+<img src="docs/terminal.png" width="880" alt="아래쪽 패널에 열린 원격 셸">
 
 ### 🔐 보안
 
@@ -248,9 +252,15 @@ swift run SFTPManager --snapshot /tmp/demo.png --demo
 
 # 도움말·정보 창을 원하는 언어와 주제로
 swift run SFTPManager --snapshot /tmp/help.png --view help --lang ko --topic terminal
+
+# 이 README의 스크린샷 — 창 프레임(제목 표시줄·툴바)까지 그리고 레티나 2배로 저장
+swift run SFTPManager --snapshot docs/screenshot.png --demo --chrome --scale 2 --lang ko
+swift run SFTPManager --snapshot docs/terminal.png --demo --chrome --scale 2 --lang ko --view terminal
 ```
 
 고정 크기 컨테이너에 그린 뒤 잘라내므로 실제 창과 같은 조건입니다 — 넘치는 레이아웃은 넘친 채로 보입니다.
+`--chrome` 은 그 고정 크기 검사 대신 진짜 창 프레임을 그리므로, 레이아웃 확인이 아니라 스크린샷용입니다.
+`--demo` 로 만든 그림에는 홈 디렉터리 경로도, 저장된 서버 목록도 들어가지 않습니다.
 
 </details>
 
