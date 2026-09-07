@@ -16,6 +16,11 @@ import AppKit
 ///
 /// `--chrome --scale 2` is the combination the README screenshots use: the real
 /// window frame, drawn at twice the point size.
+///
+/// A dark capture is for review, not for publishing: the sidebar's glass
+/// container hands its content a light appearance that only looks right when
+/// the system composites the glass, so that one column comes out dark-on-white.
+/// Everything else — toolbar included — is faithful.
 enum Snapshot {
     /// Mirrors the modifiers `SFTPManagerApp` applies, so the snapshot lays out
     /// the same way the shipping window does.
@@ -202,6 +207,10 @@ enum Snapshot {
         if let t = arguments.firstIndex(of: "--theme"), t + 1 < arguments.count,
            let parsed = AppTheme(rawValue: arguments[t + 1]) {
             model.theme = parsed
+            // `NSApp.appearance` is what the running app sets, but a window put
+            // together by hand does not always pass it down to the glass
+            // containers; naming it on the window itself does.
+            window.appearance = parsed.appearance
         }
 
         // Let SwiftUI settle: directory listings and layout both land async.
@@ -218,6 +227,28 @@ enum Snapshot {
         // asking again after layout settles gets back to the requested size.
         if chrome { window.setContentSize(size); RunLoop.main.run(until: Date().addingTimeInterval(0.3)) }
 
+        // macOS 26 composites its glass backdrops — the toolbar's platters, the
+        // sidebar's alleyway — in the window server. Rendered offscreen they
+        // come out opaque white: harmless over a light window, and in a dark
+        // one white slabs that swallow the white-on-dark icons drawn over them.
+        // The layers underneath already carry the right colour, so for a dark
+        // capture they are simply left out.
+        if let root = window.contentView?.superview,
+           root.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua {
+            for glass in views(in: root, classNameContains: "NSGlassEffectView")
+                + views(in: root, classNameContains: "BlurryAlleywayView") {
+                glass.isHidden = true
+            }
+            // The sidebar's glass container hands its content a light vibrant
+            // appearance, which is right when the system composites the glass
+            // and wrong here: it draws dark text on white. Naming the dark
+            // appearance on that subtree makes it redraw in the right one.
+            for holder in views(in: root, classNameContains: "ContentHolderView") {
+                holder.appearance = NSAppearance(named: .darkAqua)
+            }
+            RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        }
+
         guard let contentView = chrome ? (window.contentView?.superview ?? window.contentView) : window.contentView,
               let rep = bitmap(size: contentView.bounds.size, scale: scale) else {
             print("스냅샷 생성 실패")
@@ -226,6 +257,10 @@ enum Snapshot {
         // Layer rendering picks up vibrancy/material backdrops that
         // cacheDisplay(in:to:) leaves blank; fall back when there is no layer.
         if let layer = contentView.layer, let context = NSGraphicsContext(bitmapImageRep: rep) {
+            // Dynamic colours resolve against whatever appearance is current
+            // while they are drawn, and outside a real window that is Aqua —
+            // which painted a white ground under a dark-theme capture.
+            contentView.effectiveAppearance.performAsCurrentDrawingAppearance {
             context.cgContext.setFillColor(NSColor.windowBackgroundColor.cgColor)
             context.cgContext.fill(contentView.bounds)
             context.cgContext.saveGState()
@@ -247,6 +282,7 @@ enum Snapshot {
             }
             if let shell = model.shell {
                 overlay(view: shell.view, in: contentView, context: context.cgContext, scale: scale)
+            }
             }
         } else {
             contentView.cacheDisplay(in: contentView.bounds, to: rep)
