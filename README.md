@@ -15,11 +15,12 @@
 
 </div>
 
-| 두 창 브라우저와 전송 큐 | 같은 연결 위에서 열린 터미널 |
+| 밝게 | 어둡게 |
 |:--:|:--:|
-| <img src="docs/screenshot.png" alt="왼쪽 로컬, 오른쪽 원격, 아래 전송 큐"> | <img src="docs/terminal.png" alt="아래쪽 패널에 열린 원격 셸"> |
+| <img src="docs/screenshot-light.png" alt="왼쪽 로컬, 오른쪽 원격, 아래 전송 큐"> | <img src="docs/screenshot-dark.png" alt="같은 화면, 어두운 테마"> |
+| <img src="docs/terminal-light.png" alt="아래쪽 패널에 열린 원격 셸"> | <img src="docs/terminal-dark.png" alt="같은 터미널, 어두운 테마"> |
 
-<div align="center"><sup>화면은 <code>--snapshot --demo</code> 로 그린 예시 데이터입니다. 테마는 설정에서 시스템·밝게·어둡게 중에 고릅니다.</sup></div>
+<div align="center"><sup>위는 두 창 브라우저와 전송 큐, 아래는 같은 연결 위에서 열린 터미널입니다. <code>--demo</code> 로 띄운 창이라 서버·경로·전송은 전부 지어낸 값이고, 테마는 설정에서 시스템·밝게·어둡게 중에 고릅니다.</sup></div>
 
 ---
 

@@ -15,11 +15,12 @@ This Mac on the left, your server on the right. Move files between the two.
 
 </div>
 
-| The two panes and the transfer queue | A terminal on that same connection |
+| Light | Dark |
 |:--:|:--:|
-| <img src="docs/screenshot.png" alt="Local on the left, remote on the right, the queue below"> | <img src="docs/terminal.png" alt="A remote shell open in the bottom panel"> |
+| <img src="docs/screenshot-light.png" alt="Local on the left, remote on the right, the queue below"> | <img src="docs/screenshot-dark.png" alt="The same window in the dark theme"> |
+| <img src="docs/terminal-light.png" alt="A remote shell open in the bottom panel"> | <img src="docs/terminal-dark.png" alt="The same terminal in the dark theme"> |
 
-<div align="center"><sup>Drawn with <code>--snapshot --demo</code>, so the data is invented. The theme is a setting — system, light or dark.</sup></div>
+<div align="center"><sup>Above, the two panes and the transfer queue; below, a terminal on that same connection. The window is running with <code>--demo</code>, so every server, path and transfer in it is invented. The theme is a setting — system, light or dark.</sup></div>
 
 ---
 
