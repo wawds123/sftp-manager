@@ -28,13 +28,13 @@ struct ConflictSheet: View {
                     .font(.system(size: 26))
                     .foregroundStyle(.orange)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(headline).font(.headline)
+                    Text(headline).font(Style.headline)
                     Text(request.name)
-                        .font(.system(.callout, design: .monospaced))
+                        .font(Style.mono(.callout))
                         .lineLimit(2)
                         .truncationMode(.middle)
                     Text(whereText)
-                        .font(.caption)
+                        .font(Style.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.head)
@@ -76,7 +76,7 @@ struct ConflictSheet: View {
 
     private func detail(_ title: String, _ item: FileItem?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(title).font(Style.caption).foregroundStyle(.secondary)
             if let item {
                 // The two sides are here to be compared, so their figures line
                 // up digit for digit.
@@ -85,7 +85,7 @@ struct ConflictSheet: View {
                     .font(Style.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                Text(L.unknown).font(.callout).foregroundStyle(.tertiary)
+                Text(L.unknown).font(Style.callout).foregroundStyle(.tertiary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

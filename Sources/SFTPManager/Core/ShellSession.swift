@@ -173,7 +173,7 @@ final class ShellSession: NSObject, ObservableObject, TerminalViewDelegate {
         view = ThemedTerminalView(frame: CGRect(x: 0, y: 0, width: 720, height: 320))
         super.init()
         view.applyNativeColors()
-        view.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        view.font = Fonts.terminal()
         view.terminalDelegate = self
         start(in: path)
     }
@@ -187,7 +187,7 @@ final class ShellSession: NSObject, ObservableObject, TerminalViewDelegate {
         view = ThemedTerminalView(frame: CGRect(x: 0, y: 0, width: 720, height: 320))
         super.init()
         view.applyNativeColors()
-        view.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        view.font = Fonts.terminal()
         view.terminalDelegate = self
         view.feed(text: text)
         state = .running
@@ -370,6 +370,12 @@ final class ShellSession: NSObject, ObservableObject, TerminalViewDelegate {
     /// applied to windows asynchronously, so the view may not have been told yet.
     func refreshAppearance() {
         view.applyNativeColors()
+    }
+
+    /// Settings changed the terminal font. SwiftTerm reflows the screen to the
+    /// new cell size on its own.
+    func refreshFont() {
+        view.font = Fonts.terminal()
     }
 
     nonisolated func scrolled(source: TerminalView, position: Double) {}

@@ -102,7 +102,7 @@ struct FilePaneView: View {
 
                 TextField(L.path, text: $pathDraft)
                     .textFieldStyle(.roundedBorder)
-                    .font(.system(.callout, design: .monospaced))
+                    .font(Style.mono(.callout))
                     .onSubmit {
                         model.navigate(side, to: pathDraft)
                     }
@@ -149,7 +149,7 @@ struct FilePaneView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .font(.callout)
+            .font(Style.callout)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(Color.primary.opacity(0.05), in: Capsule())
@@ -241,10 +241,10 @@ struct FilePaneView: View {
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.tertiary)
             Text(title)
-                .font(.headline)
+                .font(Style.headline)
                 .foregroundStyle(.secondary)
             Text(message)
-                .font(.callout)
+                .font(Style.callout)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 280)
@@ -556,12 +556,16 @@ private struct FileRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             // Sizes are a column of numbers, so they line up on their last digit.
+            // `lineLimit(1)` everywhere: in a wide interface font these values
+            // would otherwise wrap and make one row taller than the rest.
             Text(item.isDirectory ? "—" : ByteFormat.string(item.size))
+                .lineLimit(1)
                 .padding(.trailing, Style.columnGap)
                 .frame(width: Style.sizeColumn, alignment: .trailing)
                 .foregroundStyle(.secondary)
 
             Text(item.modified.map { Self.dateFormatter.string(from: $0) } ?? "—")
+                .lineLimit(1)
                 .frame(width: Style.dateColumn, alignment: .leading)
                 .foregroundStyle(.secondary)
 
@@ -573,6 +577,7 @@ private struct FileRow: View {
 
             Text(item.permissionString)
                 .font(Style.rowMono)
+                .lineLimit(1)
                 .frame(width: Style.permissionColumn, alignment: .leading)
                 .foregroundStyle(.tertiary)
         }

@@ -39,6 +39,10 @@ enum PreferenceKey {
     static let showTransfersAtLaunch = "showTransfersAtLaunch"
     static let panelHeight = "transferPanelHeight"
     static let purgedKeychain = "didPurgeKeychainCredentials"
+    static let uiFontFamily = "uiFontFamily"
+    static let uiFontSizeDelta = "uiFontSizeDelta"
+    static let terminalFontFamily = "terminalFontFamily"
+    static let terminalFontSize = "terminalFontSize"
 }
 
 extension AppModel {
@@ -88,6 +92,21 @@ extension AppModel {
         if let stored = defaults.object(forKey: PreferenceKey.panelHeight) as? Double {
             transferPanelHeight = CGFloat(stored)
         }
+        // A family that has since been uninstalled is kept as it is: `Fonts`
+        // falls back to the system font for it, and reinstalling it brings the
+        // choice back rather than silently losing it.
+        uiFontFamily = defaults.string(forKey: PreferenceKey.uiFontFamily)
+        terminalFontFamily = defaults.string(forKey: PreferenceKey.terminalFontFamily)
+        let fonts = FontPreferences(
+            uiFamily: uiFontFamily,
+            uiSizeDelta: defaults.object(forKey: PreferenceKey.uiFontSizeDelta) as? Double ?? 0,
+            terminalFamily: terminalFontFamily,
+            terminalSize: defaults.object(forKey: PreferenceKey.terminalFontSize) as? Double
+                ?? FontPreferences.standard.terminalSize
+        ).clamped
+        uiFontSizeDelta = fonts.uiSizeDelta
+        terminalFontSize = fonts.terminalSize
+        Fonts.current = fonts
     }
 
     func savePreferences() {
@@ -104,6 +123,36 @@ extension AppModel {
         defaults.set(showTransfersAtLaunch, forKey: PreferenceKey.showTransfersAtLaunch)
         defaults.set(pipelineDepth, forKey: PreferenceKey.pipelineDepth)
         defaults.set(editPollInterval, forKey: PreferenceKey.editPollInterval)
+        defaults.set(uiFontSizeDelta, forKey: PreferenceKey.uiFontSizeDelta)
+        defaults.set(terminalFontSize, forKey: PreferenceKey.terminalFontSize)
+        set(uiFontFamily, forKey: PreferenceKey.uiFontFamily, in: defaults)
+        set(terminalFontFamily, forKey: PreferenceKey.terminalFontFamily, in: defaults)
+    }
+
+    /// "No family chosen" is the absence of the key, not an empty string, so a
+    /// later default can still be told apart from a deliberate choice.
+    private func set(_ family: String?, forKey key: String, in defaults: UserDefaults) {
+        if let family { defaults.set(family, forKey: key) } else { defaults.removeObject(forKey: key) }
+    }
+
+    /// Pushes the four font choices into `Fonts`, which is what `Style` and the
+    /// terminal read. Called from every font `didSet`.
+    func applyFonts() {
+        Fonts.current = FontPreferences(uiFamily: uiFontFamily, uiSizeDelta: uiFontSizeDelta,
+                                        terminalFamily: terminalFontFamily,
+                                        terminalSize: terminalFontSize)
+        if let shell {
+            DispatchQueue.main.async { shell.refreshFont() }
+        }
+    }
+
+    /// Back to the system font at its own size, leaving every other preference
+    /// alone.
+    func resetFonts() {
+        uiFontFamily = nil
+        uiFontSizeDelta = FontPreferences.standard.uiSizeDelta
+        terminalFontFamily = nil
+        terminalFontSize = FontPreferences.standard.terminalSize
     }
 
     func applyTheme() {
@@ -138,6 +187,8 @@ extension AppModel {
             PreferenceKey.notifyOnFinish, PreferenceKey.showTransfersAtLaunch,
             PreferenceKey.pipelineDepth,
             PreferenceKey.editPollInterval, PreferenceKey.panelHeight,
+            PreferenceKey.uiFontFamily, PreferenceKey.uiFontSizeDelta,
+            PreferenceKey.terminalFontFamily, PreferenceKey.terminalFontSize,
         ] {
             defaults.removeObject(forKey: key)
         }
@@ -152,6 +203,7 @@ extension AppModel {
         pipelineDepth = 64
         editPollInterval = 1.0
         transferPanelHeight = nil
+        resetFonts()
     }
 
     /// Sound plus a Dock bounce — deliberately not a user notification, which

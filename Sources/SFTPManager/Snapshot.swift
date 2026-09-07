@@ -8,6 +8,7 @@ import AppKit
 /// enough to verify that the UI lays out and paints.
 ///
 /// Usage: SFTPManager --snapshot /path/to/out.png [--seconds 2] [--view app|sidebar]
+///        [--ui-font NAME] [--ui-size N] [--terminal-font NAME] [--terminal-size N]
 ///
 /// `--view sidebar` renders the connection list on its own, which is the smaller
 /// target when only that column is under review. The whole-window capture draws
@@ -72,6 +73,23 @@ enum Snapshot {
            let parsed = AppLanguage(rawValue: arguments[g + 1]) {
             model.language = parsed
         }
+        // Font choices are set on `Fonts` rather than on the model, so a review
+        // render never writes them to the real preferences.
+        var fonts = FontPreferences.standard
+        if let f = arguments.firstIndex(of: "--ui-font"), f + 1 < arguments.count {
+            fonts.uiFamily = arguments[f + 1]
+        }
+        if let f = arguments.firstIndex(of: "--ui-size"), f + 1 < arguments.count {
+            fonts.uiSizeDelta = Double(arguments[f + 1]) ?? 0
+        }
+        if let f = arguments.firstIndex(of: "--terminal-font"), f + 1 < arguments.count {
+            fonts.terminalFamily = arguments[f + 1]
+        }
+        if let f = arguments.firstIndex(of: "--terminal-size"), f + 1 < arguments.count {
+            fonts.terminalSize = Double(arguments[f + 1]) ?? fonts.terminalSize
+        }
+        Fonts.current = fonts
+
         if !demo, let l = arguments.firstIndex(of: "--local"), l + 1 < arguments.count {
             model.navigate(.local, to: arguments[l + 1])
         }
@@ -129,7 +147,7 @@ enum Snapshot {
                 tab = parsed
             }
             hosting = NSHostingView(rootView: SettingsView(initialTab: tab).environmentObject(model))
-            size = NSSize(width: 560, height: 460)
+            size = NSSize(width: 560, height: 520)
         case "sidebar":
             hosting = NSHostingView(rootView: ConnectionSidebar().environmentObject(model))
             size = NSSize(width: 260, height: 420)

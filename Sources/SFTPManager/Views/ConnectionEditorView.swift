@@ -25,7 +25,7 @@ struct ConnectionEditorView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(isNew ? L.newServer : L.editServerTitle)
-                .font(.title3.weight(.semibold))
+                .font(Style.title3)
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
                 .padding(.bottom, 12)
@@ -56,7 +56,7 @@ struct ConnectionEditorView: View {
                         }
                     }
                     Label(secretNote, systemImage: "lock")
-                        .font(.caption)
+                        .font(Style.caption)
                         .foregroundStyle(.secondary)
                 }
 
@@ -125,10 +125,10 @@ struct PromptSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(request.title)
-                .font(.headline)
+                .font(Style.headline)
             if !request.message.isEmpty {
                 Text(request.message)
-                    .font(.caption)
+                    .font(Style.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)

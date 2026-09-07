@@ -5,7 +5,7 @@ import AppKit
 /// persists it — there is no separate apply step.
 struct SettingsView: View {
     enum Tab: String, CaseIterable {
-        case general, files, transfers, advanced, about
+        case general, fonts, files, transfers, advanced, about
     }
 
     /// Selectable so each tab can be rendered on its own for review.
@@ -20,6 +20,9 @@ struct SettingsView: View {
             GeneralSettings()
                 .tabItem { Label(L.settingsGeneral, systemImage: "gearshape") }
                 .tag(Tab.general)
+            FontSettings()
+                .tabItem { Label(L.settingsFonts, systemImage: "textformat.size") }
+                .tag(Tab.fonts)
             FileListSettings()
                 .tabItem { Label(L.settingsFileList, systemImage: "list.bullet") }
                 .tag(Tab.files)
@@ -33,7 +36,9 @@ struct SettingsView: View {
                 .tabItem { Label(L.settingsAbout, systemImage: "info.circle") }
                 .tag(Tab.about)
         }
-        .frame(width: 560, height: 460)
+        // Tall enough for the longest tab (fonts) to show its last control
+        // without scrolling; the rest simply have room to spare.
+        .frame(width: 560, height: 520)
     }
 }
 
@@ -52,7 +57,7 @@ private struct GeneralSettings: View {
                 }
             } footer: {
                 Text(L.languageFooter)
-                    .font(.caption)
+                    .font(Style.caption)
                     .foregroundStyle(.secondary)
             }
 
@@ -67,7 +72,7 @@ private struct GeneralSettings: View {
                 Text(L.appearance)
             } footer: {
                 Text(L.themeFooter)
-                    .font(.caption)
+                    .font(Style.caption)
                     .foregroundStyle(.secondary)
             }
 
@@ -77,7 +82,7 @@ private struct GeneralSettings: View {
                         .foregroundStyle(.secondary)
                 }
                 Text(L.passwordPolicyFooter)
-                    .font(.caption)
+                    .font(Style.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -102,7 +107,7 @@ private struct FileListSettings: View {
                     Text(L.descending).tag(false)
                 }
                 Text(L.displayFooter)
-                    .font(.caption)
+                    .font(Style.caption)
                     .foregroundStyle(.secondary)
             }
 
@@ -114,7 +119,7 @@ private struct FileListSettings: View {
                 }
             } footer: {
                 Text(L.doubleClickFooter)
-                    .font(.caption)
+                    .font(Style.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -139,7 +144,7 @@ private struct TransferSettings: View {
                 Toggle(L.notifyOnFinishLabel, isOn: $model.notifyOnTransferFinish)
             } footer: {
                 Text(L.transferFooter)
-                    .font(.caption)
+                    .font(Style.caption)
                     .foregroundStyle(.secondary)
             }
 
@@ -154,7 +159,7 @@ private struct TransferSettings: View {
                 Text(L.speed)
             } footer: {
                 Text(L.pipelineFooter)
-                    .font(.caption)
+                    .font(Style.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -185,7 +190,7 @@ private struct AdvancedSettings: View {
                     }
                     if let cleanedMessage {
                         Text(cleanedMessage)
-                            .font(.caption)
+                            .font(Style.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -193,7 +198,7 @@ private struct AdvancedSettings: View {
                 Text(L.remoteEditingTitle)
             } footer: {
                 Text(L.remoteEditingFooter)
-                    .font(.caption)
+                    .font(Style.caption)
                     .foregroundStyle(.secondary)
             }
 
@@ -206,7 +211,7 @@ private struct AdvancedSettings: View {
                 Button(L.resetSettings, role: .destructive) { confirmingReset = true }
             } footer: {
                 Text(L.resetFooter)
-                    .font(.caption)
+                    .font(Style.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -221,7 +226,7 @@ private struct AdvancedSettings: View {
         LabeledContent(label) {
             HStack(spacing: 8) {
                 Text(path)
-                    .font(.caption.monospaced())
+                    .font(Style.rowMono)
                     .lineLimit(1)
                     .truncationMode(.head)
                     .textSelection(.enabled)
@@ -230,4 +235,94 @@ private struct AdvancedSettings: View {
             }
         }
     }
+}
+
+/// Interface and terminal fonts.
+///
+/// Families are listed by name and nothing is bundled: a font the Mac already
+/// has is one the person already reads comfortably, and it keeps the app clear
+/// of redistributing anyone's typeface.
+private struct FontSettings: View {
+    @EnvironmentObject private var model: AppModel
+
+    /// SwiftUI needs a non-optional tag, so "no family chosen" travels as an
+    /// empty string and is mapped back at the binding.
+    private func familyBinding(_ keyPath: ReferenceWritableKeyPath<AppModel, String?>) -> Binding<String> {
+        Binding(
+            get: { model[keyPath: keyPath] ?? "" },
+            set: { model[keyPath: keyPath] = $0.isEmpty ? nil : $0 }
+        )
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Picker(L.uiFontLabel, selection: familyBinding(\.uiFontFamily)) {
+                    Text(L.systemFont).tag("")
+                    Divider()
+                    ForEach(Fonts.families, id: \.self) { family in
+                        Text(family).tag(family)
+                    }
+                }
+                Stepper(value: $model.uiFontSizeDelta,
+                        in: FontPreferences.uiSizeDeltaRange, step: 1) {
+                    LabeledContent(L.uiFontSizeLabel) {
+                        Text(L.fontSizeOffset(Int(model.uiFontSizeDelta)))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Text(L.sectionInterface)
+            } footer: {
+                Text(L.uiFontFooter)
+                    .font(Style.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Picker(L.terminalFontLabel, selection: familyBinding(\.terminalFontFamily)) {
+                    Text(L.systemMonoFont).tag("")
+                    Divider()
+                    ForEach(Fonts.monospacedFamilies, id: \.self) { family in
+                        Text(family).tag(family)
+                    }
+                }
+                Stepper(value: $model.terminalFontSize,
+                        in: FontPreferences.terminalSizeRange, step: 1) {
+                    LabeledContent(L.terminalFontSizeLabel) {
+                        Text("\(Int(model.terminalFontSize))pt")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                // Drawn with the very font the terminal will use — this window
+                // is already in the interface font, so that one needs no
+                // sample, but the terminal is not on screen to judge.
+                Text(Self.terminalSample)
+                    .font(Font(Fonts.terminal() as CTFont))
+                    .lineLimit(2)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.primary.opacity(0.06),
+                                in: RoundedRectangle(cornerRadius: 6))
+            } header: {
+                Text(L.terminal)
+            } footer: {
+                Text(L.terminalFontFooter)
+                    .font(Style.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Button(L.resetFonts) { model.resetFonts() }
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    /// Deliberately ASCII with a couple of box-drawing characters: it shows the
+    /// figures and the alignment a terminal font is picked for.
+    private static let terminalSample = """
+    deploy@web-01:~$ ls -lh
+    -rw-r--r--  1 deploy  18.4M  releases/build-4812.tar.gz
+    """
 }

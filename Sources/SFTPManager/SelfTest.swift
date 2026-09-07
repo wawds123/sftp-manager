@@ -21,6 +21,7 @@ enum SelfTest {
         sortingChecks()
         activePaneChecks()
         glyphChecks()
+        fontChecks()
         localizationChecks()
         dragPayloadChecks()
         preferenceChecks()
@@ -339,6 +340,57 @@ enum SelfTest {
     /// Anything enumerable is walked here. The strings that live as individual
     /// `L` members can't be reflected over, so `Scripts/check_l10n.sh` covers
     /// those by grepping the source for stray Korean literals.
+    private static func fontChecks() {
+        section("폰트 설정")
+
+        // A family that is not installed must read as "no choice", so the app
+        // falls back to the system font instead of whatever macOS substitutes.
+        expectTrue(Fonts.resolve(nil) == nil, "고르지 않으면 시스템 폰트")
+        expectTrue(Fonts.resolve("") == nil, "빈 이름도 시스템 폰트")
+        expectTrue(Fonts.resolve("Not A Real Family 12345") == nil, "설치되지 않은 폰트는 무시")
+        expect(Fonts.resolve("Menlo"), "Menlo", "설치된 폰트는 그대로 사용")
+
+        // Menlo ships with macOS, so this holds on any Mac the app runs on.
+        expectTrue(Fonts.monospacedFamilies.contains("Menlo"), "고정폭 목록에 Menlo가 있음")
+        expectTrue(!Fonts.monospacedFamilies.contains("Helvetica"), "비례 폰트는 터미널 목록에서 제외")
+        let families = Set(Fonts.families)
+        expectTrue(Fonts.monospacedFamilies.allSatisfy { families.contains($0) },
+                   "고정폭 목록은 설치된 폰트의 부분집합")
+
+        // Sizes from disk are clamped, never rejected: an out-of-range value
+        // would otherwise leave the app unreadable with no way back.
+        let absurd = FontPreferences(uiFamily: nil, uiSizeDelta: 99,
+                                     terminalFamily: nil, terminalSize: 400).clamped
+        expect(absurd.uiSizeDelta, FontPreferences.uiSizeDeltaRange.upperBound, "글자 크기 보정 상한")
+        expect(absurd.terminalSize, FontPreferences.terminalSizeRange.upperBound, "터미널 크기 상한")
+        let tiny = FontPreferences(uiFamily: nil, uiSizeDelta: -99,
+                                   terminalFamily: nil, terminalSize: 1).clamped
+        expect(tiny.uiSizeDelta, FontPreferences.uiSizeDeltaRange.lowerBound, "글자 크기 보정 하한")
+        expect(tiny.terminalSize, FontPreferences.terminalSizeRange.lowerBound, "터미널 크기 하한")
+
+        let saved = Fonts.current
+        defer { Fonts.current = saved }
+
+        Fonts.current = FontPreferences(uiFamily: nil, uiSizeDelta: 0,
+                                        terminalFamily: "Not A Real Family 12345", terminalSize: 14)
+        let fallback = Fonts.terminal()
+        expect(fallback.pointSize, 14, "폰트가 없어도 고른 크기는 유지")
+        expectTrue(fallback.isFixedPitch, "대체 폰트도 고정폭")
+
+        Fonts.current = FontPreferences(uiFamily: nil, uiSizeDelta: 0,
+                                        terminalFamily: "Menlo", terminalSize: 13)
+        expect(Fonts.terminal().familyName, "Menlo", "고른 터미널 폰트가 적용됨")
+
+        // The interface font follows the size offset, whatever the family.
+        Fonts.current = FontPreferences(uiFamily: nil, uiSizeDelta: 3,
+                                        terminalFamily: nil, terminalSize: 12)
+        expectTrue(Style.ui(.callout) != Style.ui(.body), "본문과 캡션은 서로 다른 크기")
+        expect(Fonts.ui(size: 12, weight: .regular)?.familyName, nil, "시스템 폰트일 때는 직접 만들지 않음")
+        Fonts.current = FontPreferences(uiFamily: "Menlo", uiSizeDelta: 0,
+                                        terminalFamily: nil, terminalSize: 12)
+        expect(Fonts.ui(size: 12, weight: .regular)?.familyName, "Menlo", "고른 인터페이스 폰트가 적용됨")
+    }
+
     private static func localizationChecks() {
         section("언어")
         let original = Lang.current
@@ -676,6 +728,8 @@ enum SelfTest {
                 PreferenceKey.pipelineDepth,
                 PreferenceKey.editPollInterval, PreferenceKey.panelHeight,
                 PreferenceKey.language,
+                PreferenceKey.uiFontFamily, PreferenceKey.uiFontSizeDelta,
+                PreferenceKey.terminalFontFamily, PreferenceKey.terminalFontSize,
             ]
             // The user's real settings live here — put every key back afterwards.
             let saved = keys.map { ($0, defaults.object(forKey: $0)) }
@@ -696,6 +750,9 @@ enum SelfTest {
             expect(fresh.pipelineDepth, SFTPSession.defaultPipelineDepth, "동시 요청 기본값")
             expect(fresh.editPollInterval, 1.0, "편집 확인 주기 기본값")
             expectTrue(fresh.showTransfersAtLaunch, "전송 목록은 기본적으로 열린 채 시작")
+            expectTrue(fresh.uiFontFamily == nil, "인터페이스 폰트 기본값은 시스템")
+            expect(fresh.uiFontSizeDelta, 0, "글자 크기 기본값")
+            expect(fresh.terminalFontSize, FontPreferences.standard.terminalSize, "터미널 글자 크기 기본값")
             expectTrue(fresh.showBottomPanel, "시작 직후 전송 목록이 보임")
 
             let changed = AppModel()
@@ -709,6 +766,12 @@ enum SelfTest {
             changed.editPollInterval = 2
             changed.showTransfersAtLaunch = false
             changed.language = .english
+            changed.uiFontFamily = "Menlo"
+            changed.uiFontSizeDelta = 2
+            changed.terminalFontFamily = "Menlo"
+            changed.terminalFontSize = 15
+            expect(Fonts.current.uiFamily, "Menlo", "폰트 선택이 곧바로 반영")
+            expect(Style.baseSize(.callout) + 2, 14, "글자 크기 보정이 기준 크기에 더해짐")
             expect(Lang.current, .english, "언어를 바꾸면 즉시 적용")
 
             expectTrue(changed.local.showHidden, "숨김 설정이 로컬 창에 즉시 적용")
@@ -725,9 +788,15 @@ enum SelfTest {
             expect(reloaded.language, .english, "언어가 다시 실행해도 유지")
             expectTrue(!reloaded.showBottomPanel, "해제하면 시작 시 전송 목록이 접힘")
             expectTrue(reloaded.local.showHidden, "숨김 설정이 시작 시 적용")
+            expect(reloaded.uiFontFamily, "Menlo", "인터페이스 폰트가 다시 실행해도 유지")
+            expect(reloaded.uiFontSizeDelta, 2, "글자 크기 보정 유지")
+            expect(reloaded.terminalFontSize, 15, "터미널 글자 크기 유지")
+            expect(Fonts.terminal().pointSize, 15, "터미널이 저장된 크기로 그려짐")
 
             reloaded.resetPreferences()
             expect(reloaded.theme, .system, "초기화 후 테마")
+            expectTrue(reloaded.uiFontFamily == nil, "초기화 후 인터페이스 폰트는 시스템")
+            expect(reloaded.terminalFontSize, FontPreferences.standard.terminalSize, "초기화 후 터미널 글자 크기")
             expect(reloaded.pipelineDepth, SFTPSession.defaultPipelineDepth, "초기화 후 동시 요청 수")
             expectTrue(reloaded.showTransfersAtLaunch, "초기화 후 전송 목록 자동 열기")
             // Reset must not strand the interface in a language the user may

@@ -11,9 +11,10 @@ struct SFTPManagerApp: App {
             ContentView()
                 .environmentObject(model)
                 .frame(minWidth: 1020, minHeight: 620)
-                // Strings are read from `L`, which is not observable, so the
-                // whole tree is rebuilt when the language changes.
-                .id(model.language)
+                // Strings come from `L` and fonts from `Style`, neither of
+                // which is observable, so the whole tree is rebuilt when either
+                // changes.
+                .id(model.uiIdentity)
         }
         .windowToolbarStyle(.unified)
         .commands {
@@ -74,14 +75,14 @@ struct SFTPManagerApp: App {
         Window(L.menuHelp, id: "help") {
             HelpView()
                 .environmentObject(model)
-                .id(model.language)
+                .id(model.uiIdentity)
         }
         .defaultSize(width: 820, height: 580)
 
         Window(L.menuAbout, id: "about") {
             AboutView()
                 .frame(width: 420)
-                .id(model.language)
+                .id(model.uiIdentity)
         }
         // A fixed-size panel: the content sizes itself, so no resize handles.
         .windowResizability(.contentSize)

@@ -571,6 +571,30 @@ enum L {
     }
     static var reset: String { t("초기화", "Reset") }
 
+    // MARK: - Fonts
+
+    static var settingsFonts: String { t("폰트", "Fonts") }
+    static var sectionInterface: String { t("인터페이스", "Interface") }
+    static var uiFontLabel: String { t("인터페이스 폰트", "Interface font") }
+    static var uiFontSizeLabel: String { t("글자 크기", "Text size") }
+    static var systemFont: String { t("시스템 기본", "System default") }
+    static var systemMonoFont: String { t("시스템 고정폭", "System monospaced") }
+    static var uiFontFooter: String {
+        t("시스템 기본 폰트는 한글과 영문을 모두 담고 있습니다. 다른 폰트를 고르면 그 폰트에 없는 글자는 macOS가 대신 채워 넣어 줄마다 모양이 섞일 수 있습니다.",
+          "The system font covers every script this app is translated into. With another family, macOS substitutes for the characters it lacks, which can mix two shapes in one line.")
+    }
+    static var terminalFontLabel: String { t("터미널 폰트", "Terminal font") }
+    static var terminalFontSizeLabel: String { t("터미널 글자 크기", "Terminal text size") }
+    static var terminalFontFooter: String {
+        t("고정폭 폰트만 나열됩니다. Nerd Font 계열을 고르면 셸 프롬프트가 쓰는 아이콘 글자까지 제대로 보입니다.",
+          "Only fixed-pitch families are listed. A Nerd Font family also draws the icon glyphs a shell prompt uses.")
+    }
+    static var resetFonts: String { t("폰트 기본값으로", "Reset fonts") }
+    /// The size offset, as a signed number of points.
+    static func fontSizeOffset(_ points: Int) -> String {
+        points == 0 ? t("기본", "Default") : (points > 0 ? "+\(points)pt" : "\(points)pt")
+    }
+
     // MARK: - About
 
     static var madeBy: String { t("만든이", "Made by") }

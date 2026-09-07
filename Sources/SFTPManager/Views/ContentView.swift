@@ -155,7 +155,7 @@ struct StatusPill: View {
                 Circle().fill(color).frame(width: 8, height: 8)
             }
             Text(text)
-                .font(.callout.weight(.medium))
+                .font(Style.itemName)
                 .lineLimit(1)
         }
         // An actual pill: in a unified toolbar the dot and the name otherwise

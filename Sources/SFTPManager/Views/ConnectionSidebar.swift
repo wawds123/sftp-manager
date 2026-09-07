@@ -115,7 +115,7 @@ private struct ConnectionRow: View {
                     .font(Style.itemName)
                     .lineLimit(1)
                 Text(connection.subtitle)
-                    .font(.caption)
+                    .font(Style.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)

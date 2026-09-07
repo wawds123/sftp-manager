@@ -37,7 +37,7 @@ struct HelpView: View {
                         selected = topic.id
                     } label: {
                         Label(topic.title, systemImage: topic.symbol)
-                            .font(.callout)
+                            .font(Style.callout)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 6)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -63,7 +63,7 @@ struct HelpView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     Text(topic.title)
-                        .font(.title2.weight(.semibold))
+                        .font(Style.title2)
                     ForEach(topic.entries) { entry in
                         entryRow(entry)
                     }
@@ -81,11 +81,11 @@ struct HelpView: View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 if let term = entry.term {
-                    Text(term).font(.headline)
+                    Text(term).font(Style.headline)
                 }
                 // `.init` so `code` and **bold** inside the text render.
                 Text(.init(entry.detail))
-                    .font(.callout)
+                    .font(Style.callout)
                     .foregroundStyle(entry.term == nil ? .primary : .secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

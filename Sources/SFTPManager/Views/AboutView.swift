@@ -32,12 +32,12 @@ struct AboutView: View {
                         .foregroundStyle(.tint)
                 }
                 Text("SFTP Manager")
-                    .font(.title2.weight(.semibold))
+                    .font(Style.title2)
                 Text("\(L.version) \(Self.version)")
-                    .font(.callout)
+                    .font(Style.callout)
                     .foregroundStyle(.secondary)
                 Text(L.aboutTagline)
-                    .font(.callout)
+                    .font(Style.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -70,7 +70,7 @@ struct AboutView: View {
                         .textSelection(.enabled)
                 }
             }
-            .font(.callout)
+            .font(Style.callout)
             .padding(.horizontal, 28)
             .padding(.vertical, 18)
 

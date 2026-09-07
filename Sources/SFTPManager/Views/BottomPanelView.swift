@@ -117,7 +117,7 @@ private struct TerminalStatus: View {
             // instead of shoving the buttons around.
             Text(shell.title)
                 // It is a path, so it gets the font paths get.
-                .font(.system(.caption, design: .monospaced))
+                .font(Style.rowMono)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.head)
@@ -136,7 +136,7 @@ private struct TerminalActions: View {
         switch shell.state {
         case .starting:
             Text(L.shellOpening)
-                .font(.caption)
+                .font(Style.caption)
                 .foregroundStyle(.secondary)
         case .running:
             // The two arrows point at whichever half moves, and the halves are
@@ -156,7 +156,7 @@ private struct TerminalActions: View {
             Button(L.closeSession) { model.closeTerminal() }
         case .closed:
             Text(L.sessionEnded)
-                .font(.caption)
+                .font(Style.caption)
                 .foregroundStyle(.secondary)
             Button(L.reopen) { model.openTerminal() }
                 .disabled(!model.status.isConnected)
@@ -193,8 +193,8 @@ private struct TerminalPanel: View {
 
     private func message(_ title: String, _ detail: String) -> some View {
         VStack(spacing: 4) {
-            Text(title).font(.callout)
-            Text(detail).font(.caption).foregroundStyle(.tertiary)
+            Text(title).font(Style.callout)
+            Text(detail).font(Style.caption).foregroundStyle(.tertiary)
         }
         .foregroundStyle(.secondary)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

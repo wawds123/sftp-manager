@@ -10,7 +10,7 @@ struct TransferQueueView: View {
     var body: some View {
         if model.transfers.isEmpty {
             Text(L.emptyQueue)
-                .font(.callout)
+                .font(Style.callout)
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
@@ -112,7 +112,7 @@ private struct TransferRow: View {
                 .frame(width: 140)
             } else {
                 Text(item.direction.label)
-                    .font(.caption)
+                    .font(Style.caption)
                     .foregroundStyle(.tertiary)
                     .frame(width: 140, alignment: .trailing)
             }

@@ -75,6 +75,28 @@ final class AppModel: ObservableObject {
     @Published var showTransfersAtLaunch = true {
         didSet { savePreferences() }
     }
+    /// Font choices. Views read them through `Style`, which is not observable,
+    /// so the scene is keyed on `uiIdentity`.
+    @Published var uiFontFamily: String? {
+        didSet { applyFonts(); savePreferences() }
+    }
+    @Published var uiFontSizeDelta: Double = 0 {
+        didSet { applyFonts(); savePreferences() }
+    }
+    @Published var terminalFontFamily: String? {
+        didSet { applyFonts(); savePreferences() }
+    }
+    @Published var terminalFontSize: Double = FontPreferences.standard.terminalSize {
+        didSet { applyFonts(); savePreferences() }
+    }
+
+    /// Everything a view would have to be rebuilt for: the strings it draws and
+    /// the interface font it draws them in. The terminal font is deliberately
+    /// absent — it is pushed to the live shell instead of rebuilding the tree.
+    var uiIdentity: String {
+        "\(language.rawValue)|\(uiFontFamily ?? "-")|\(uiFontSizeDelta)"
+    }
+
     @Published var showBottomPanel = true
     @Published var bottomTab: BottomTab = .transfers
 

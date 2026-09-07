@@ -126,9 +126,12 @@ Typing `exit` ends the shell but leaves the screen in place, and `Reopen` starts
   With nothing stored yet, a first launch follows the language macOS is set to.
 - **Help (`⌘?`)** — seven topics in both languages: getting started, browsing, transfers, editing
   remote files, terminal, shortcuts, and security.
-- **Settings (`⌘,`)** — General (language, theme, password policy) / File Lists (hidden files, default
-  sort, double-click action) / Transfers (clash default, open the queue at launch, notify on finish,
-  concurrent requests) / Advanced (edit polling, paths, reset) / About
+- **Fonts** — Settings › Fonts picks the interface font and its size, and the terminal's font and size,
+  separately. Only fixed-pitch families are offered for the terminal, and a Nerd Font family also draws
+  the icon glyphs a shell prompt uses. Nothing is bundled; the list is what the Mac already has.
+- **Settings (`⌘,`)** — General (language, theme, password policy) / Fonts (interface, terminal) /
+  File Lists (hidden files, default sort, double-click action) / Transfers (clash default, open the
+  queue at launch, notify on finish, concurrent requests) / Advanced (edit polling, paths, reset) / About
 
 ---
 

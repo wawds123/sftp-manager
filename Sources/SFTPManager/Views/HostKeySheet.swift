@@ -33,14 +33,14 @@ struct HostKeySheet: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
                 Image(systemName: symbol)
-                    .font(.title)
+                    .font(Style.largeTitle)
                     .foregroundStyle(tint)
                 Text(title)
-                    .font(.title3.weight(.semibold))
+                    .font(Style.title3)
             }
 
             Text("\(error.host):\(error.port)")
-                .font(.callout)
+                .font(Style.callout)
                 .foregroundStyle(.secondary)
 
             switch error.kind {
@@ -64,11 +64,11 @@ struct HostKeySheet: View {
             }
 
             Text(L.keyAlgorithm(error.algorithm))
-                .font(.caption)
+                .font(Style.caption)
                 .foregroundStyle(.secondary)
 
             Text(L.nothingSentYet)
-                .font(.caption)
+                .font(Style.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -95,10 +95,10 @@ struct HostKeySheet: View {
     private func fingerprintBox(label: String, value: String, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
-                .font(.caption)
+                .font(Style.caption)
                 .foregroundStyle(.secondary)
             Text(value)
-                .font(.system(.callout, design: .monospaced))
+                .font(Style.mono(.callout))
                 .textSelection(.enabled)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
