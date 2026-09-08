@@ -874,26 +874,42 @@ enum SelfTest {
         let host: String
         let port: Int
         let user: String
-        let keyPath: String
+        /// Nil when the run authenticates with a password instead.
+        let keyPath: String?
         let passphrase: String?
+        let password: String?
         /// Megabytes to push through for the throughput measurement; nil skips it.
         let benchmarkMB: Int?
         /// How many small files to move one after another, the way the queue does.
         let benchmarkFiles: Int?
+        /// Transfer tuning, for measuring where the best throughput actually is.
+        let chunkKB: Int?
+        let depth: Int?
+
+        /// What `SFTPSession.connect` wants: a key's passphrase, or the password.
+        var secret: String? { keyPath == nil ? password : passphrase }
 
         init?(_ arguments: [String]) {
             func value(_ flag: String) -> String? {
                 guard let index = arguments.firstIndex(of: flag), index + 1 < arguments.count else { return nil }
                 return arguments[index + 1]
             }
-            guard let host = value("--host"), let key = value("--key") else { return nil }
+            guard let host = value("--host") else { return nil }
+            let key = value("--key")
+            let password = value("--password")
+            // One of the two has to be there; without either there is nothing
+            // to authenticate with.
+            guard key != nil || password != nil else { return nil }
             self.host = host
             self.keyPath = key
+            self.password = password
             self.port = Int(value("--port") ?? "22") ?? 22
             self.user = value("--user") ?? NSUserName()
             self.passphrase = value("--passphrase")
             self.benchmarkMB = value("--bench-mb").flatMap(Int.init)
             self.benchmarkFiles = value("--bench-files").flatMap(Int.init)
+            self.chunkKB = value("--chunk-kb").flatMap(Int.init)
+            self.depth = value("--depth").flatMap(Int.init)
         }
     }
 
@@ -904,11 +920,14 @@ enum SelfTest {
         connection.host = server.host
         connection.port = server.port
         connection.username = server.user
-        connection.authMethod = .privateKey
-        connection.privateKeyPath = server.keyPath
-
-        if OpenSSHKeyInspector.isEncrypted(atPath: server.keyPath) {
-            expectTrue(server.passphrase != nil, "암호로 보호된 키에는 --passphrase가 필요함")
+        if let keyPath = server.keyPath {
+            connection.authMethod = .privateKey
+            connection.privateKeyPath = keyPath
+            if OpenSSHKeyInspector.isEncrypted(atPath: keyPath) {
+                expectTrue(server.passphrase != nil, "암호로 보호된 키에는 --passphrase가 필요함")
+            }
+        } else {
+            connection.authMethod = .password
         }
 
         // Runs against an isolated known_hosts so the user's real file is never
@@ -917,7 +936,14 @@ enum SelfTest {
 
         let session: SFTPSession
         do {
-            session = try await SFTPSession.connect(connection, secret: server.passphrase, knownHostsPath: knownHosts)
+            session = try await SFTPSession.connect(
+                connection, secret: server.secret, knownHostsPath: knownHosts,
+                pipelineDepth: server.depth ?? SFTPSession.defaultPipelineDepth,
+                chunkSize: (server.chunkKB.map { $0 * 1024 }) ?? SFTPSession.defaultChunkSize
+            )
+            if server.chunkKB != nil || server.depth != nil {
+                note("전송 설정: 청크 \((server.chunkKB ?? SFTPSession.defaultChunkSize / 1024))KB · 동시 요청 \(server.depth ?? SFTPSession.defaultPipelineDepth)개")
+            }
         } catch {
             checks += 1
             failures += 1
@@ -1208,7 +1234,7 @@ enum SelfTest {
         // 1. Empty known_hosts: the connection must be refused, not accepted.
         var discovered: HostKeyError?
         do {
-            let session = try await SFTPSession.connect(connection, secret: server.passphrase, knownHostsPath: path)
+            let session = try await SFTPSession.connect(connection, secret: server.secret, knownHostsPath: path)
             await session.disconnect()
             checks += 1; failures += 1
             print("  ✗ 알 수 없는 호스트 키인데도 연결됨")
@@ -1233,7 +1259,7 @@ enum SelfTest {
         // 3. Trusting the key lets the connection through.
         try? KnownHosts.append(line: discovered.knownHostsLine, path: path)
         do {
-            let session = try await SFTPSession.connect(connection, secret: server.passphrase, knownHostsPath: path)
+            let session = try await SFTPSession.connect(connection, secret: server.secret, knownHostsPath: path)
             await session.disconnect()
             checks += 1
             print("  ✓ known_hosts에 등록 후 연결 성공")
@@ -1251,7 +1277,7 @@ enum SelfTest {
             let bogus = "\(KnownHosts.hostPattern(host: server.host, port: server.port)) \(fields[0]) \(fields[1])"
             try? bogus.write(toFile: decoy, atomically: true, encoding: .utf8)
             do {
-                let session = try await SFTPSession.connect(connection, secret: server.passphrase, knownHostsPath: decoy)
+                let session = try await SFTPSession.connect(connection, secret: server.secret, knownHostsPath: decoy)
                 await session.disconnect()
                 checks += 1; failures += 1
                 print("  ✗ 키가 바뀌었는데도 연결됨")

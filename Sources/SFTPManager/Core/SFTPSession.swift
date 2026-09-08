@@ -48,7 +48,7 @@ actor SFTPSession {
     /// One SFTP read/write per request. 32,000 is the largest payload Citadel
     /// will put in a single packet (swift-nio-ssh issue #99), so a bigger chunk
     /// would just be split and sent serially.
-    private static let chunkSize = 32_000
+    static let defaultChunkSize = 32_000
 
     /// SSH channel window, which is what actually caps download throughput.
     ///
@@ -71,12 +71,17 @@ actor SFTPSession {
     let homePath: String
     /// Requests in flight per transfer; configurable in Settings.
     private let pipelineDepth: Int
+    /// Bytes per request. Only the benchmark varies it, to measure whether the
+    /// 32,000-byte ceiling is still where the best throughput is.
+    private let chunkSize: Int
 
-    private init(client: SSHClient, sftp: SFTPClient, homePath: String, pipelineDepth: Int) {
+    private init(client: SSHClient, sftp: SFTPClient, homePath: String,
+                 pipelineDepth: Int, chunkSize: Int) {
         self.client = client
         self.sftp = sftp
         self.homePath = homePath
         self.pipelineDepth = max(1, pipelineDepth)
+        self.chunkSize = max(1024, chunkSize)
     }
 
     // MARK: - Connecting
@@ -85,7 +90,8 @@ actor SFTPSession {
         _ connection: Connection,
         secret: String?,
         knownHostsPath: String = KnownHosts.defaultPath,
-        pipelineDepth: Int = defaultPipelineDepth
+        pipelineDepth: Int = defaultPipelineDepth,
+        chunkSize: Int = defaultChunkSize
     ) async throws -> SFTPSession {
         let auth = try makeAuthentication(connection, secret: secret)
         // Host keys are checked against known_hosts during key exchange, which
@@ -112,7 +118,8 @@ actor SFTPSession {
         logger.logLevel = .warning
         let sftp = try await client.openSFTP(logger: logger)
         let home = (try? await sftp.getRealPath(atPath: ".")) ?? "/"
-        return SFTPSession(client: client, sftp: sftp, homePath: home, pipelineDepth: pipelineDepth)
+        return SFTPSession(client: client, sftp: sftp, homePath: home,
+                           pipelineDepth: pipelineDepth, chunkSize: chunkSize)
     }
 
     /// Turns Citadel's opaque auth failure into something actionable.
@@ -309,7 +316,7 @@ actor SFTPSession {
         handle: FileHandle,
         progress: @escaping @Sendable (UInt64) -> Void
     ) async throws {
-        let chunk = UInt64(Self.chunkSize)
+        let chunk = UInt64(chunkSize)
         var nextOffset: UInt64 = 0
         var written: UInt64 = 0
 
@@ -349,7 +356,7 @@ actor SFTPSession {
         var offset: UInt64 = 0
         while true {
             try Task.checkCancellation()
-            var buffer = try await file.read(from: offset, length: UInt32(Self.chunkSize))
+            var buffer = try await file.read(from: offset, length: UInt32(chunkSize))
             let readable = buffer.readableBytes
             if readable == 0 { break }
             if let bytes = buffer.readBytes(length: readable) {
@@ -388,7 +395,7 @@ actor SFTPSession {
             try await withThrowingTaskGroup(of: Int.self) { group in
                 func scheduleNext() throws -> Bool {
                     guard !reachedEnd else { return false }
-                    guard let chunk = try handle.read(upToCount: Self.chunkSize), !chunk.isEmpty else {
+                    guard let chunk = try handle.read(upToCount: chunkSize), !chunk.isEmpty else {
                         reachedEnd = true
                         return false
                     }
