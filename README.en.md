@@ -194,7 +194,10 @@ by those two.
 
 ## 🧰 Development and build
 
-**Building from source is the only way to install this.** At 0.0.1 there is no prebuilt download.
+**Building from source is the recommended way to install this.** There is a
+[0.0.1 preview build](https://github.com/wawds123/sftp-manager/releases/tag/v0.0.1) (universal, 8.9 MB)
+for convenience, but it is ad-hoc signed rather than notarized, so macOS quarantines it on download and
+you have to clear that by hand (→ [notes for macOS](#macos)). Building it yourself skips all of that.
 
 ### What you need
 
