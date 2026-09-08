@@ -878,6 +878,8 @@ enum SelfTest {
         let passphrase: String?
         /// Megabytes to push through for the throughput measurement; nil skips it.
         let benchmarkMB: Int?
+        /// How many small files to move one after another, the way the queue does.
+        let benchmarkFiles: Int?
 
         init?(_ arguments: [String]) {
             func value(_ flag: String) -> String? {
@@ -891,6 +893,7 @@ enum SelfTest {
             self.user = value("--user") ?? NSUserName()
             self.passphrase = value("--passphrase")
             self.benchmarkMB = value("--bench-mb").flatMap(Int.init)
+            self.benchmarkFiles = value("--bench-files").flatMap(Int.init)
         }
     }
 
@@ -972,6 +975,9 @@ enum SelfTest {
 
             if let megabytes = server.benchmarkMB {
                 try await benchmark(session: session, root: root, megabytes: megabytes)
+            }
+            if let count = server.benchmarkFiles {
+                try await benchmarkManyFiles(session: session, root: root, count: count)
             }
 
             try await session.removeRecursively(root)
@@ -1377,6 +1383,61 @@ enum SelfTest {
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
         return String(data: data, encoding: .utf8)
+    }
+
+    /// Many small files, one after another — the shape a folder transfer has,
+    /// and the one where per-file cost dominates. One big file says nothing
+    /// about it: there the round trips are amortised over megabytes.
+    private static func benchmarkManyFiles(session: SFTPSession, root: String, count: Int) async throws {
+        let kilobytes = 32
+        section("전송 속도 (\(kilobytes) KB 파일 \(count)개)")
+        let directory = NSTemporaryDirectory() + "sftp-bench-many-\(UUID().uuidString)"
+        let back = directory + "-back"
+        try FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(atPath: back, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(atPath: directory)
+            try? FileManager.default.removeItem(atPath: back)
+        }
+
+        let payload = Data(repeating: 0x5A, count: kilobytes * 1024)
+        var locals: [String] = []
+        for index in 0..<count {
+            let path = directory + "/file-\(index).bin"
+            try payload.write(to: URL(fileURLWithPath: path))
+            locals.append(path)
+        }
+
+        let remoteDirectory = PathUtil.join(root, "many")
+        try await session.makeDirectory(remoteDirectory)
+
+        let total = Double(count * kilobytes * 1024) / 1_048_576
+        let uploadStart = Date()
+        for path in locals {
+            let name = PathUtil.lastComponent(of: path)
+            try await session.upload(localPath: path, to: PathUtil.join(remoteDirectory, name)) { _ in }
+        }
+        let uploadSeconds = Date().timeIntervalSince(uploadStart)
+
+        let downloadStart = Date()
+        for path in locals {
+            let name = PathUtil.lastComponent(of: path)
+            try await session.download(remotePath: PathUtil.join(remoteDirectory, name),
+                                       to: back + "/" + name) { _ in }
+        }
+        let downloadSeconds = Date().timeIntervalSince(downloadStart)
+
+        try await session.removeRecursively(remoteDirectory)
+
+        func line(_ label: String, _ seconds: Double) {
+            let perFile = seconds / Double(count) * 1000
+            print(String(format: "  · %@ %.1f MB/s (%.2fs · 파일당 %.1f ms · 초당 %.0f개)",
+                         label, total / seconds, seconds, perFile, Double(count) / seconds))
+        }
+        line("업로드  ", uploadSeconds)
+        line("다운로드", downloadSeconds)
+        expect(try FileManager.default.contentsOfDirectory(atPath: back).count, count,
+               "작은 파일 \(count)개가 모두 돌아옴")
     }
 
     private static func benchmark(session: SFTPSession, root: String, megabytes: Int) async throws {
