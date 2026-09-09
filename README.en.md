@@ -2,9 +2,6 @@
 
 # SFTP Manager
 
-**A native SFTP file transfer app for macOS**
-This Mac on the left, your server on the right. Move files between the two.
-
 ![macOS](https://img.shields.io/badge/macOS-15%2B-000000?logo=apple&logoColor=white)
 ![Swift](https://img.shields.io/badge/Swift-6.x-F05138?logo=swift&logoColor=white)
 ![Version](https://img.shields.io/badge/version-0.0.1%20pre--release-orange)
@@ -20,15 +17,22 @@ This Mac on the left, your server on the right. Move files between the two.
 | <img src="docs/screenshot-light.png" alt="Local on the left, remote on the right, the queue below"> | <img src="docs/screenshot-dark.png" alt="The same window in the dark theme"> |
 | <img src="docs/terminal-light.png" alt="A remote shell open in the bottom panel"> | <img src="docs/terminal-dark.png" alt="The same terminal in the dark theme"> |
 
-<div align="center"><sup>Above, the two panes and the transfer queue; below, a terminal on that same connection. The window is running with <code>--demo</code>, so every server, path and transfer in it is invented. The theme is a setting — system, light or dark.</sup></div>
+<div align="center">
+<sup>Above, the two panes and the transfer queue; below, a terminal on that same connection.</sup><br>
+<sup>The window is running with <code>--demo</code>, so every server, path and transfer in it is invented.</sup><br>
+<sup>The theme is a setting — system, light or dark.</sup>
+</div>
 
 ---
 
 ## Contents
 
-[✨ Features](#features) · [⌨️ Shortcuts](#shortcuts) · [🧱 Tech stack](#stack) ·
-[🧰 Development and build](#build) · [⚠️ Installing and running it on macOS](#macos) ·
-[📄 License](#license)
+- [✨ Features](#features)
+- [⌨️ Shortcuts](#shortcuts)
+- [🧱 Tech stack](#stack)
+- [🧰 Development and build](#build)
+- [⚠️ Installing and running it on macOS](#macos)
+- [📄 License](#license)
 
 ---
 
@@ -67,27 +71,6 @@ This Mac on the left, your server on the right. Move files between the two.
 - **Double-click** — a local file **uploads by default**. To switch it to `Open with Default App`, use
   the `…` menu in the local pane or the menu bar's `Transfers › Double-click a local file`. Folders
   navigate either way.
-
-<details>
-<summary><b>Transfer speed</b> — request pipelining and the SSH channel window</summary>
-
-<br>
-
-Sending one request at a time and waiting for each reply costs a round trip every 32 KB, which caps the
-rate at `32 KB / RTT`. Now 64 requests are in flight, and the channel receive window swift-nio-ssh sets
-to 128 KB is raised to 2 MB, the same as OpenSSH. **That window is why downloads were so much slower
-than uploads.**
-
-| Condition | Before | Now |
-|---|---:|---:|
-| 40 ms RTT · 8 MB upload | 0.7 MB/s | **24.5 MB/s** |
-| 40 ms RTT · 8 MB download | 0.7 MB/s | **16.0 MB/s** |
-| Loopback · 64 MB upload | 237.8 MB/s | **473.7 MB/s** |
-| Loopback · 64 MB download | 248.6 MB/s | **344.6 MB/s** |
-
-<sup>Under the same conditions <code>scp</code> manages 8.8 MB/s and 202.5 MB/s respectively</sup>
-
-</details>
 
 ### 📝 Editing remote files
 
@@ -168,25 +151,11 @@ Typing `exit` ends the shell but leaves the screen in place, and `Reopen` starts
 
 | Area | What |
 |---|---|
-| Language · UI | Swift 6 (language mode 5) · SwiftUI, with `NSViewRepresentable` for AppKit |
-| Concurrency | actor-backed sessions, a `@MainActor` UI, progress callbacks coalesced into 100 ms buckets |
-| Build | a SwiftPM executable plus a hand-assembled `.app` bundle (no Xcode) |
+| Language · UI | Swift 6 · SwiftUI |
+| SSH · SFTP | [Citadel](https://github.com/orlandos-nl/Citadel) (MIT) |
+| Terminal | [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) (MIT) |
+| Build | SwiftPM — no Xcode needed |
 | Minimum | macOS 15 |
-
-| Package | License | Used for |
-|---|---|---|
-| [Citadel](https://github.com/orlandos-nl/Citadel) | MIT | SSH connection, SFTP, PTY channel |
-| [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) | MIT | ANSI/vt100 emulation in the terminal panel |
-
-Everything else (swift-nio, swift-crypto, swift-log, swift-collections, BigInt and so on) is pulled in
-by those two.
-
-> [!NOTE]
-> The SSH transport does not come from `apple/swift-nio-ssh` but from the
-> [`Wellz26/swift-nio-ssh`](https://github.com/Wellz26/swift-nio-ssh) fork. That is not this app's
-> choice — **Citadel 0.12.1 declares it in its own `Package.swift`** (the fork adds certificate
-> authentication and Mac Catalyst support). It is worth stating plainly in an SSH client. The exact
-> version and commit are pinned in `Package.resolved`.
 
 ---
 
@@ -239,57 +208,11 @@ swift run SFTPManager --demo        # a window full of invented data, for screen
 `--demo` opens the ordinary window with invented servers, listings, transfers and shell output. It
 cannot touch the real state — the connection store points at a scratch file and preferences are not
 written — so you can switch themes to frame a shot and still have your settings afterwards. The
-pictures in this README are the same data, drawn offscreen.
+pictures at the top of this README are that window.
 
 A release build is stripped before signing, which roughly halves it (18.8 MB → 9.0 MB per slice).
 `swift build --arch a --arch b` needs Xcode's build system, so `--universal` builds the second
 architecture with an explicit target triple and joins the slices with `lipo`.
-
-### Verification
-
-There is no XCTest in a Command Line Tools install, so this repo uses a **runnable self-test** instead.
-
-```bash
-# pure logic — path handling, sorting/filtering/history, shell logic, translations, drag payloads
-swift run SFTPManager --selftest
-
-# against a real server: upload → list → download (byte for byte) → rename → walk → recursive delete
-swift run SFTPManager --selftest \
-    --host 127.0.0.1 --port 2222 --user "$USER" --key ~/.ssh/id_ed25519
-
-# throughput (transfers the given size each way and prints MB/s)
-swift run SFTPManager --selftest \
-    --host 127.0.0.1 --port 2222 --user "$USER" --key ~/.ssh/id_ed25519 --bench-mb 64
-
-# fails on any Korean string still hard-coded into a view or a model
-./Scripts/check_l10n.sh
-```
-
-<details>
-<summary><b>Checking what the UI renders — offscreen snapshots</b> (no screen-recording permission needed)</summary>
-
-<br>
-
-```bash
-swift run SFTPManager --snapshot /tmp/ui.png                       # the whole window
-swift run SFTPManager --snapshot /tmp/settings.png --view settings --tab advanced
-
-# fixed sample data — reads neither your home directory nor your saved servers
-swift run SFTPManager --snapshot /tmp/demo.png --demo
-
-# the help and about windows, in a chosen language and topic
-swift run SFTPManager --snapshot /tmp/help.png --view help --lang en --topic terminal
-
-# the window frame (title bar, toolbar) included, at 2x
-swift run SFTPManager --snapshot /tmp/window.png --demo --chrome --scale 2
-```
-
-Snapshots are drawn into a fixed-size container and clipped — the same condition as a real window, so
-layout that overflows shows up as overflow. `--chrome` trades that fixed-size check for the real window
-frame, so it is for screenshots rather than for layout checks. Nothing drawn with `--demo` contains a
-home directory path or a saved server.
-
-</details>
 
 ---
 

@@ -2,9 +2,6 @@
 
 # SFTP Manager
 
-**macOS 네이티브 SFTP 파일 전송기**
-왼쪽은 이 Mac, 오른쪽은 서버. 두 창 사이로 파일을 옮깁니다.
-
 ![macOS](https://img.shields.io/badge/macOS-15%2B-000000?logo=apple&logoColor=white)
 ![Swift](https://img.shields.io/badge/Swift-6.x-F05138?logo=swift&logoColor=white)
 ![Version](https://img.shields.io/badge/version-0.0.1%20pre--release-orange)
@@ -20,14 +17,22 @@
 | <img src="docs/screenshot-light.png" alt="왼쪽 로컬, 오른쪽 원격, 아래 전송 큐"> | <img src="docs/screenshot-dark.png" alt="같은 화면, 어두운 테마"> |
 | <img src="docs/terminal-light.png" alt="아래쪽 패널에 열린 원격 셸"> | <img src="docs/terminal-dark.png" alt="같은 터미널, 어두운 테마"> |
 
-<div align="center"><sup>위는 두 창 브라우저와 전송 큐, 아래는 같은 연결 위에서 열린 터미널입니다. <code>--demo</code> 로 띄운 창이라 서버·경로·전송은 전부 지어낸 값이고, 테마는 설정에서 시스템·밝게·어둡게 중에 고릅니다.</sup></div>
+<div align="center">
+<sup>위는 두 창 브라우저와 전송 큐, 아래는 같은 연결 위에서 열린 터미널입니다.</sup><br>
+<sup><code>--demo</code> 로 띄운 창이라 서버·경로·전송은 전부 지어낸 값입니다.</sup><br>
+<sup>테마는 설정에서 시스템·밝게·어둡게 중에 고릅니다.</sup>
+</div>
 
 ---
 
 ## 목차
 
-[✨ 주요 기능](#features) · [⌨️ 단축키](#shortcuts) · [🧱 기술 스택](#stack) ·
-[🧰 개발 및 빌드](#build) · [⚠️ macOS 설치 및 실행 시 주의사항](#macos) · [📄 라이선스](#license)
+- [✨ 주요 기능](#features)
+- [⌨️ 단축키](#shortcuts)
+- [🧱 기술 스택](#stack)
+- [🧰 개발 및 빌드](#build)
+- [⚠️ macOS 설치 및 실행 시 주의사항](#macos)
+- [📄 라이선스](#license)
 
 ---
 
@@ -62,26 +67,6 @@
 
 - **더블클릭** — 로컬 파일은 **기본이 업로드**입니다. `기본 앱으로 열기` 로 바꾸려면 로컬 창의 `…`
   메뉴나 메뉴 막대의 `전송 › 로컬 파일 더블클릭` 을 쓰세요. 폴더는 어느 쪽이든 이동합니다.
-
-<details>
-<summary><b>전송 속도</b> — 요청 파이프라이닝과 SSH 채널 윈도</summary>
-
-<br>
-
-요청을 하나씩 보내고 답을 기다리면 32 KB마다 왕복이 생겨 `32 KB / RTT` 로 묶입니다. 요청 64개를
-동시에 띄우고, swift-nio-ssh가 128 KB로 잡는 채널 수신 윈도를 OpenSSH와 같은 2 MB로 올렸습니다.
-**다운로드가 업로드보다 유독 느렸던 이유가 이 윈도였습니다.**
-
-| 조건 | 이전 | 현재 |
-|---|---:|---:|
-| 40 ms RTT · 8 MB 업로드 | 0.7 MB/s | **24.5 MB/s** |
-| 40 ms RTT · 8 MB 다운로드 | 0.7 MB/s | **16.0 MB/s** |
-| 루프백 · 64 MB 업로드 | 237.8 MB/s | **473.7 MB/s** |
-| 루프백 · 64 MB 다운로드 | 248.6 MB/s | **344.6 MB/s** |
-
-<sup>같은 조건에서 <code>scp</code> 는 각각 8.8 MB/s, 202.5 MB/s 입니다</sup>
-
-</details>
 
 ### 📝 원격 파일 편집
 
@@ -158,24 +143,11 @@
 
 | 항목 | 사용 |
 |---|---|
-| 언어 · UI | Swift 6 (언어 모드 5) · SwiftUI, AppKit 연동은 `NSViewRepresentable` |
-| 동시성 | actor 기반 세션, `@MainActor` UI, 진행률 콜백은 100 ms 단위로 합침 |
-| 빌드 | SwiftPM 실행 파일 + 손으로 조립하는 `.app` 번들 (Xcode 불필요) |
+| 언어 · UI | Swift 6 · SwiftUI |
+| SSH · SFTP | [Citadel](https://github.com/orlandos-nl/Citadel) (MIT) |
+| 터미널 | [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) (MIT) |
+| 빌드 | SwiftPM — Xcode 없이 빌드합니다 |
 | 최소 사양 | macOS 15 |
-
-| 패키지 | 라이선스 | 쓰임 |
-|---|---|---|
-| [Citadel](https://github.com/orlandos-nl/Citadel) | MIT | SSH 연결, SFTP, PTY 채널 |
-| [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) | MIT | 터미널 패널의 ANSI/vt100 에뮬레이션 |
-
-나머지(swift-nio, swift-crypto, swift-log, swift-collections, BigInt 등)는 위 둘이 끌고 옵니다.
-
-> [!NOTE]
-> SSH 전송 계층은 `apple/swift-nio-ssh` 가 아니라
-> [`Wellz26/swift-nio-ssh`](https://github.com/Wellz26/swift-nio-ssh) 포크를 씁니다. 이 앱이 고른 게
-> 아니라 **Citadel 0.12.1 이 자기 `Package.swift` 에 그렇게 선언**해 둔 것입니다(포크는 인증서 인증과
-> Mac Catalyst 지원을 추가). SSH 클라이언트라면 밝혀 둘 만한 사실이라 적습니다. 정확한 버전과 커밋은
-> `Package.resolved` 에 고정되어 있습니다.
 
 ---
 
@@ -227,56 +199,11 @@ swift run SFTPManager --demo        # 예시 데이터로 채운 창 (스크린�
 
 `--demo` 는 서버·목록·전송·셸 출력이 전부 지어낸 값인 창을 엽니다. 실제 서버 목록과 설정은 건드리지
 않으므로(연결 저장소가 임시 파일로 바뀌고 설정은 저장되지 않습니다), 테마를 바꿔 가며 마음대로 찍어도
-원래 설정 그대로입니다. 이 README의 그림은 같은 데이터를 오프스크린으로 그린 것입니다.
+원래 설정 그대로입니다. 이 README 위쪽 그림이 그렇게 띄운 창을 찍은 것입니다.
 
 릴리즈 빌드는 서명 전에 strip 해서 크기가 대략 절반이 됩니다(슬라이스당 18.8 MB → 9.0 MB).
 `swift build --arch a --arch b` 는 Xcode의 빌드 시스템을 요구하므로, `--universal` 은 두 번째
 아키텍처를 명시적 타깃 트리플로 따로 빌드해 `lipo` 로 붙입니다.
-
-### 검증
-
-Command Line Tools 환경에는 XCTest가 없어서, **실행 가능한 자체 검사**를 씁니다.
-
-```bash
-# 순수 로직 — 경로 처리, 정렬·필터·히스토리, 셸 로직, 번역, 드래그 페이로드
-swift run SFTPManager --selftest
-
-# 실제 서버 대상: 업로드 → 목록 → 다운로드(바이트 비교) → 이름 변경 → 재귀 순회 → 재귀 삭제
-swift run SFTPManager --selftest \
-    --host 127.0.0.1 --port 2222 --user "$USER" --key ~/.ssh/id_ed25519
-
-# 처리량 측정 (지정한 크기를 양방향으로 보내고 MB/s 출력)
-swift run SFTPManager --selftest \
-    --host 127.0.0.1 --port 2222 --user "$USER" --key ~/.ssh/id_ed25519 --bench-mb 64
-
-# 뷰나 모델에 한글 문자열이 하드코딩되어 있으면 실패
-./Scripts/check_l10n.sh
-```
-
-<details>
-<summary><b>화면 확인 — 오프스크린 스냅샷</b> (화면 기록 권한이 필요 없습니다)</summary>
-
-<br>
-
-```bash
-swift run SFTPManager --snapshot /tmp/ui.png                       # 창 전체
-swift run SFTPManager --snapshot /tmp/settings.png --view settings --tab advanced
-
-# 고정된 예시 데이터 — 홈 디렉터리도, 저장된 서버 목록도 읽지 않습니다
-swift run SFTPManager --snapshot /tmp/demo.png --demo
-
-# 도움말·정보 창을 원하는 언어와 주제로
-swift run SFTPManager --snapshot /tmp/help.png --view help --lang ko --topic terminal
-
-# 창 프레임(제목 표시줄·툴바)까지, 레티나 2배로
-swift run SFTPManager --snapshot /tmp/window.png --demo --chrome --scale 2
-```
-
-고정 크기 컨테이너에 그린 뒤 잘라내므로 실제 창과 같은 조건입니다 — 넘치는 레이아웃은 넘친 채로 보입니다.
-`--chrome` 은 그 고정 크기 검사 대신 진짜 창 프레임을 그리므로, 레이아웃 확인이 아니라 스크린샷용입니다.
-`--demo` 로 만든 그림에는 홈 디렉터리 경로도, 저장된 서버 목록도 들어가지 않습니다.
-
-</details>
 
 ---
 
