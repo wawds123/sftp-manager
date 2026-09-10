@@ -206,7 +206,7 @@ struct FilePaneView: View {
                                 listFocused = true
                             })
                             .simultaneousGesture(TapGesture(count: 2).onEnded {
-                                model.open(item, in: side)
+                                model.openDoubleClick(item, in: side)
                             })
                             .onDrag { makeDragProvider(for: item) }
                             .contextMenu { contextMenu(for: item) }
@@ -217,8 +217,8 @@ struct FilePaneView: View {
                 .listStyle(.inset(alternatesRowBackgrounds: true))
                 .onDeleteCommand { model.promptDelete(side) }
                 .onKeyPress(.return) {
-                    guard let item = pane.selectedItems.first else { return .ignored }
-                    model.open(item, in: side)
+                    guard !pane.selection.isEmpty else { return .ignored }
+                    model.openSelection(in: side)
                     return .handled
                 }
 

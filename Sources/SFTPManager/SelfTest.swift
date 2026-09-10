@@ -865,6 +865,19 @@ enum SelfTest {
             let folder = FileItem(path: "/tmp", name: "tmp", kind: .directory, size: 0, modified: nil, permissions: nil)
             folderModel.open(folder, in: .local)
             expect(folderModel.local.path, "/tmp", "폴더는 설정과 무관하게 이동")
+
+            // Return on a single highlighted folder means "go in", not "send it".
+            let returnModel = AppModel()
+            returnModel.local.setItems([folder])
+            returnModel.local.selection = [folder.id]
+            returnModel.openSelection(in: .local)
+            expect(returnModel.local.path, "/tmp", "폴더 하나만 골라 Return 하면 들어감")
+
+            // Nothing selected, nothing happens — and no alert about it.
+            let emptyModel = AppModel()
+            emptyModel.openSelection(in: .local)
+            expectTrue(emptyModel.transfers.isEmpty, "고른 게 없으면 아무 일도 없음")
+            expectTrue(emptyModel.alertMessage == nil, "고른 게 없으면 경고도 없음")
         }
     }
 
@@ -998,6 +1011,7 @@ enum SelfTest {
             await editIntegrationChecks(session: session, root: root)
             await shellIntegrationChecks(session: session, root: root)
             await conflictIntegrationChecks(session: session, root: root)
+            await multiSelectionIntegrationChecks(session: session, root: root)
 
             if let megabytes = server.benchmarkMB {
                 try await benchmark(session: session, root: root, megabytes: megabytes)
@@ -1210,6 +1224,105 @@ enum SelfTest {
         try? await Task.sleep(nanoseconds: 1_500_000_000)
         expectTrue(model.conflictRequest == nil, "‘물어보기’가 아니면 창을 띄우지 않음")
         expect(await remoteNames(), ["clash 2.bin", name], "건너뛰기 정책은 그대로 동작")
+    }
+
+    /// Two files picked at once must both arrive. The queue runs them one after
+    /// another, so a break anywhere in enqueue → pump → run shows up as a single
+    /// file landing instead of two.
+    @MainActor
+    private static func multiSelectionIntegrationChecks(session: SFTPSession, root: String) async {
+        section("여러 개 선택 후 전송")
+        let directory = PathUtil.join(root, "multi")
+        let destination = NSTemporaryDirectory() + "sftp-multi-\(UUID().uuidString)"
+        defer { try? FileManager.default.removeItem(atPath: destination) }
+
+        let names = ["alpha.bin", "bravo.bin", "charlie.bin"]
+        let sizes: [UInt64] = [1024, 2048, 4096]
+        do {
+            try await session.makeDirectory(directory)
+            try FileManager.default.createDirectory(atPath: destination, withIntermediateDirectories: true)
+            for (name, size) in zip(names, sizes) {
+                let local = NSTemporaryDirectory() + "sftp-multi-src-\(name)"
+                try Data(repeating: 3, count: Int(size)).write(to: URL(fileURLWithPath: local))
+                defer { try? FileManager.default.removeItem(atPath: local) }
+                try await session.upload(localPath: local, to: PathUtil.join(directory, name)) { _ in }
+            }
+        } catch {
+            checks += 1; failures += 1
+            print("  ✗ 준비 실패: \(AppModel.describe(error))")
+            return
+        }
+
+        let model = AppModel()
+        model.session = session
+        model.previewConnected(UUID(), name: "selftest")
+        model.conflictPolicy = .overwrite
+
+        let listing = ((try? await session.list(directory)) ?? []).filter { !$0.isDirectory }
+        expect(listing.count, names.count, "준비한 파일이 서버에 모두 있음")
+
+        // The pane is what a click actually fills in, so the selection is
+        // exercised through it rather than by handing the items over directly.
+        model.remote.setPath(directory, record: false)
+        model.remote.setItems(listing)
+        model.remote.selection = Set(listing.prefix(2).map(\.id))
+        expect(model.remote.selectedItems.count, 2, "두 개를 고르면 선택도 두 개")
+
+        model.startTransfer(direction: .download, items: model.remote.selectedItems, into: destination)
+        let landed = await waitUntil(seconds: 60) {
+            model.transfers.count == 2 && model.transfers.allSatisfy { $0.state == .completed }
+        }
+        expect(model.transfers.count, 2, "고른 두 개가 모두 큐에 들어감")
+        expectTrue(landed, "두 전송이 모두 완료 상태")
+
+        let arrived = ((try? FileManager.default.contentsOfDirectory(atPath: destination)) ?? []).sorted()
+        expect(arrived, Array(names.prefix(2)), "두 파일이 모두 내려받아짐")
+        for (name, size) in zip(names.prefix(2), sizes.prefix(2)) {
+            let attributes = try? FileManager.default.attributesOfItem(atPath: destination + "/" + name)
+            expect((attributes?[.size] as? UInt64) ?? 0, size, "\(name) 크기가 원본과 같음")
+        }
+
+        // Return with two rows highlighted used to act on one of them.
+        model.transfers.removeAll()
+        model.remote.selection = Set(listing.prefix(2).map(\.id))
+        model.openSelection(in: .remote)
+        _ = await waitUntil(seconds: 60) {
+            model.transfers.count == 2 && model.transfers.allSatisfy { $0.state == .completed }
+        }
+        expect(model.transfers.count, 2, "Return 은 고른 두 개를 모두 전송")
+
+        // A double-click inside a multi-selection takes the whole selection,
+        // the way the Finder does.
+        model.transfers.removeAll()
+        model.remote.selection = Set(listing.prefix(2).map(\.id))
+        model.openDoubleClick(listing[1], in: .remote)
+        _ = await waitUntil(seconds: 60) {
+            model.transfers.count == 2 && model.transfers.allSatisfy { $0.state == .completed }
+        }
+        expect(model.transfers.count, 2, "선택된 행을 더블클릭하면 선택 전체를 전송")
+
+        // Double-clicking a row that is not part of the selection takes only it.
+        model.transfers.removeAll()
+        model.remote.selection = Set(listing.prefix(2).map(\.id))
+        model.openDoubleClick(listing[2], in: .remote)
+        _ = await waitUntil(seconds: 60) {
+            model.transfers.count == 1 && model.transfers.allSatisfy { $0.state == .completed }
+        }
+        expect(model.transfers.count, 1, "선택 밖의 행을 더블클릭하면 그 행만 전송")
+        expect(model.transfers.first?.displayName, listing[2].name, "더블클릭한 그 파일")
+
+        // And the other direction, with all three at once.
+        let uploadRoot = PathUtil.join(root, "multi-up")
+        try? await session.makeDirectory(uploadRoot)
+        let locals = arrived.map { FileItem(path: destination + "/" + $0, name: $0, kind: .file,
+                                            size: 0, modified: nil, permissions: nil) }
+        model.transfers.removeAll()
+        model.startTransfer(direction: .upload, items: locals, into: uploadRoot)
+        _ = await waitUntil(seconds: 60) {
+            model.transfers.count == locals.count && model.transfers.allSatisfy { $0.state == .completed }
+        }
+        let uploaded = ((try? await session.list(uploadRoot)) ?? []).map(\.name).sorted()
+        expect(uploaded, Array(names.prefix(2)), "고른 파일이 모두 업로드됨")
     }
 
     /// Polls `condition` on the main actor until it holds or the deadline passes.

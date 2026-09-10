@@ -508,6 +508,42 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// What Return does, and what a double-click on a row that is part of a
+    /// multi-selection does: act on **everything** selected. Acting on one item
+    /// while several were highlighted silently dropped the rest.
+    func openSelection(in side: PaneSide) {
+        let items = pane(side).selectedItems
+        guard !items.isEmpty else { return }
+        // One item keeps the single-item behaviour, so a lone folder still means
+        // "go into it" rather than "transfer it".
+        guard items.count > 1 else {
+            open(items[0], in: side)
+            return
+        }
+        switch side {
+        case .local:
+            switch localDoubleClickAction {
+            case .upload:
+                startTransfer(direction: .upload, items: items)
+            case .openInDefaultApp:
+                items.forEach(openInDefaultApp)
+            }
+        case .remote:
+            startTransfer(direction: .download, items: items)
+        }
+    }
+
+    /// A double-click: the whole selection when the row is part of one, that row
+    /// alone otherwise — the way the Finder treats it.
+    func openDoubleClick(_ item: FileItem, in side: PaneSide) {
+        let pane = pane(side)
+        if pane.selection.count > 1, pane.selection.contains(item.id) {
+            openSelection(in: side)
+        } else {
+            open(item, in: side)
+        }
+    }
+
     func openInDefaultApp(_ item: FileItem) {
         NSWorkspace.shared.open(URL(fileURLWithPath: item.path))
     }
