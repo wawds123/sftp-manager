@@ -160,6 +160,17 @@ final class ShellSession: NSObject, ObservableObject, TerminalViewDelegate {
     private var idle = ShellIdleRefresh()
     private var idleTimer: Timer?
 
+    /// The screen size the far side believes in.
+    ///
+    /// The PTY is requested with whatever the view measures at init, but SwiftUI
+    /// lays the panel out the moment it goes on screen — while that request is
+    /// still in flight. A resize arriving then has no channel to travel down, so
+    /// `attach` compares this against the view and sends the difference. Without
+    /// it the server keeps drawing to the wrong screen: a full-screen program
+    /// addresses rows that are not where it thinks they are, which is why `less`
+    /// left the same text stamped twice after a redraw.
+    private var channelSize: (cols: Int, rows: Int)?
+
 
     private struct WriterBox: @unchecked Sendable {
         let writer: TTYStdinWriter
@@ -208,6 +219,7 @@ final class ShellSession: NSObject, ObservableObject, TerminalViewDelegate {
             terminalPixelHeight: Int(view.bounds.height),
             terminalModes: SSHTerminalModes([:])
         )
+        channelSize = (cols: terminal.cols, rows: terminal.rows)
 
         // Inherits the main actor, and so does the non-Sendable `perform`
         // closure — which is what keeps the output in order.
@@ -240,6 +252,7 @@ final class ShellSession: NSObject, ObservableObject, TerminalViewDelegate {
     private func attach(writer: TTYStdinWriter, startIn path: String?) {
         self.writer = WriterBox(writer: writer)
         state = .running
+        sendSize()
         if let path, !path.isEmpty, path != "/" {
             // Start where the remote pane is looking, and let the user see it.
             run("cd \(ShellQuote.singleQuoted(path))")
@@ -335,15 +348,26 @@ final class ShellSession: NSObject, ObservableObject, TerminalViewDelegate {
 
     nonisolated func sizeChanged(source: TerminalView, newCols: Int, newRows: Int) {
         MainActor.assumeIsolated {
-            guard let writer else { return }
-            let width = Int(source.bounds.width)
-            let height = Int(source.bounds.height)
-            Task {
-                try? await writer.writer.changeSize(
-                    cols: newCols, rows: newRows,
-                    pixelWidth: width, pixelHeight: height
-                )
-            }
+            // Nothing to do while the channel is opening: `attach` reads the
+            // view's size itself once there is somewhere to send it.
+            sendSize()
+        }
+    }
+
+    /// Tells the far side how big the screen is now, if that has changed.
+    private func sendSize() {
+        guard let writer else { return }
+        let terminal = view.getTerminal()
+        let size = (cols: terminal.cols, rows: terminal.rows)
+        guard channelSize == nil || channelSize! != size else { return }
+        channelSize = size
+        let width = Int(view.bounds.width)
+        let height = Int(view.bounds.height)
+        Task {
+            try? await writer.writer.changeSize(
+                cols: size.cols, rows: size.rows,
+                pixelWidth: width, pixelHeight: height
+            )
         }
     }
 

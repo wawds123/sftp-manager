@@ -1133,6 +1133,75 @@ enum SelfTest {
         }
         expectTrue(appeared, "열리는 중에 보낸 명령이 실행됨")
         queued.close()
+
+        // SwiftUI lays the panel out the moment the view goes on screen, which
+        // is while the PTY request is still in flight. A resize that lands then
+        // has no channel to travel down, so it used to be dropped and the
+        // server kept drawing to the size the view happened to have at init.
+        // Full-screen programs then repaint over lines that are not where they
+        // think they are — `less` redrawing after `G` leaves the same text
+        // stamped twice.
+        let resized = ShellSession(handle: handle, home: home, startIn: directory)
+        resized.view.frame = NSRect(x: 0, y: 0, width: 560, height: 224)
+        if await waitUntil(seconds: 15, { resized.state == .running }) {
+            expect(await askTTYSize(of: resized, marker: "A"), screenSize(of: resized),
+                   "채널이 열리는 동안 바뀐 크기가 서버 PTY에 반영됨")
+            // And the ordinary case: the divider is dragged while the shell is
+            // up. Both sizes go down the same path, so this guards the other.
+            resized.view.frame = NSRect(x: 0, y: 0, width: 440, height: 308)
+            expect(await askTTYSize(of: resized, marker: "B"), screenSize(of: resized),
+                   "셸이 떠 있는 동안 크기를 바꿔도 서버가 따라옴")
+            // Settings changing the terminal font reflows the screen too, and
+            // the server has to hear about that as well.
+            resized.view.font = NSFont.monospacedSystemFont(ofSize: 18, weight: .regular)
+            expect(await askTTYSize(of: resized, marker: "C"), screenSize(of: resized),
+                   "터미널 글꼴이 바뀌어 줄 수가 달라져도 서버가 따라옴")
+        } else {
+            checks += 1; failures += 1
+            print("  ✗ 크기 검사용 셸이 열리지 않음 (\(resized.state))")
+        }
+        resized.close()
+    }
+
+    /// What the view itself thinks it is showing, as `<rows>x<cols>`.
+    @MainActor
+    private static func screenSize(of shell: ShellSession) -> String {
+        let terminal = shell.view.getTerminal()
+        return "\(terminal.rows)x\(terminal.cols)"
+    }
+
+    /// Asks the far side how big it thinks the screen is. The marker keeps one
+    /// answer from being read back for the next question, since the reply stays
+    /// in the scrollback.
+    @MainActor
+    private static func askTTYSize(of shell: ShellSession, marker: String) async -> String? {
+        shell.run("echo TTY\(marker)=$(stty size | tr ' ' x)")
+        for _ in 0..<40 {
+            if let found = reportedTTYSize(in: shell.view.getTerminal().getBufferAsData(),
+                                           marker: marker) {
+                return found
+            }
+            try? await Task.sleep(nanoseconds: 250_000_000)
+        }
+        return nil
+    }
+
+    /// Digs `TTY<marker>=<rows>x<cols>` out of the terminal screen. The echoed
+    /// command line carries the same prefix, so only a match followed by digits
+    /// counts.
+    private static func reportedTTYSize(in data: Data, marker: String) -> String? {
+        let text = String(decoding: data, as: UTF8.self)
+        var rest = Substring(text)
+        while let mark = rest.range(of: "TTY\(marker)=") {
+            let tail = rest[mark.upperBound...]
+            let value = tail.prefix { $0.isNumber || $0 == "x" }
+            let parts = value.split(separator: "x")
+            if parts.count == 2, !parts[0].isEmpty, !parts[1].isEmpty {
+                return String(value)
+            }
+            rest = tail
+        }
+        return nil
     }
 
     private static func brightness(_ color: SwiftTerm.Color) -> Double {
